@@ -13,7 +13,7 @@ function calculateOneRepMax(weight: number, reps: number): number {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
@@ -184,14 +184,16 @@ async function getTopExercisesLeaderboard(limit: number) {
   })
 
   // Convert to array and calculate final participant counts
-  const topExercises = Array.from(exerciseStats.values())
+  const allExercises = Array.from(exerciseStats.values())
     .map(stats => ({
       exerciseName: stats.exerciseName,
       participantCount: stats.userIds.size,
       totalSets: stats.totalSets,
       maxWeightRecorded: stats.maxWeightRecorded
     }))
-    .filter(exercise => exercise.participantCount >= 2) // Only include exercises with at least 2 participants
+
+  const topExercises = allExercises
+    .filter(exercise => exercise.participantCount >= 1) // Show exercises with at least 1 participant
     .sort((a, b) => b.totalSets - a.totalSets) // Sort by total sets
     .slice(0, limit)
 
