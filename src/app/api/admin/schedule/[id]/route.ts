@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma"
 // DELETE /api/admin/schedule/[id] - Remove exercise from schedule
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -15,6 +15,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const params = await context.params
     const scheduleExerciseId = params.id
 
     // Get the schedule exercise to find its order and schedule

@@ -63,7 +63,7 @@ export class ExerciseSnapshotService {
         workoutLogId,
         originalExerciseId: isReplaced ? originalExerciseId : exercise.id,
         replacementExerciseId: isReplaced ? exercise.id : null,
-        exerciseSnapshot: snapshot,
+        exerciseSnapshot: JSON.parse(JSON.stringify(snapshot)),
         isCustom: !!exercise.userId,
         isReplaced,
         replacedAt: isReplaced ? new Date() : null,
@@ -75,7 +75,7 @@ export class ExerciseSnapshotService {
   /**
    * Get exercise data from a workout exercise snapshot
    */
-  static getExerciseFromSnapshot(workoutExercise: any): Exercise {
+  static getExerciseFromSnapshot(workoutExercise: { exerciseSnapshot: unknown }): Exercise {
     const snapshot = workoutExercise.exerciseSnapshot as ExerciseSnapshot
     return {
       id: snapshot.id,
@@ -135,11 +135,7 @@ export class ExerciseSnapshotService {
       include: {
         exercises: {
           include: {
-            exercise: {
-              where: {
-                isDeleted: false // Only include non-deleted exercises
-              }
-            }
+            exercise: true
           },
           orderBy: {
             order: 'asc'
@@ -204,15 +200,19 @@ export class ExerciseSnapshotService {
   /**
    * Validate snapshot data integrity
    */
-  static validateSnapshot(snapshot: any): snapshot is ExerciseSnapshot {
+  static validateSnapshot(snapshot: unknown): snapshot is ExerciseSnapshot {
+    if (typeof snapshot !== 'object' || snapshot === null) {
+      return false
+    }
+
+    const obj = snapshot as Record<string, unknown>
     return (
-      typeof snapshot === 'object' &&
-      typeof snapshot.id === 'string' &&
-      typeof snapshot.name === 'string' &&
-      typeof snapshot.muscleGroup === 'string' &&
-      typeof snapshot.equipment === 'string' &&
-      typeof snapshot.capturedAt === 'string' &&
-      typeof snapshot.version === 'number'
+      typeof obj.id === 'string' &&
+      typeof obj.name === 'string' &&
+      typeof obj.muscleGroup === 'string' &&
+      typeof obj.equipment === 'string' &&
+      typeof obj.capturedAt === 'string' &&
+      typeof obj.version === 'number'
     )
   }
 
@@ -241,12 +241,18 @@ export class ExerciseSnapshotService {
       throw new Error('No exercise found to create snapshot from')
     }
 
-    const snapshot = this.createSnapshot(exerciseToSnapshot)
+    const exerciseForSnapshot = {
+      ...exerciseToSnapshot,
+      description: exerciseToSnapshot.description || undefined,
+      videoUrl: exerciseToSnapshot.videoUrl || undefined,
+      userId: exerciseToSnapshot.userId || undefined
+    }
+    const snapshot = this.createSnapshot(exerciseForSnapshot)
 
     return await prisma.workoutExercise.update({
       where: { id: workoutExerciseId },
       data: {
-        exerciseSnapshot: snapshot
+        exerciseSnapshot: JSON.parse(JSON.stringify(snapshot))
       }
     })
   }

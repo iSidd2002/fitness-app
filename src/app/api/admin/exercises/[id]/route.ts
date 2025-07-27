@@ -16,7 +16,7 @@ const updateExerciseSchema = z.object({
 // PUT /api/admin/exercises/[id] - Update an exercise (admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -29,13 +29,14 @@ export async function PUT(
       return NextResponse.json({ error: "Admin privileges required" }, { status: 403 })
     }
 
+    const params = await context.params
     const exerciseId = params.id
     const body = await request.json()
     const validatedData = updateExerciseSchema.parse(body)
 
     // Remove empty strings and undefined values
     const updates = Object.fromEntries(
-      Object.entries(validatedData).filter(([_, value]) => 
+      Object.entries(validatedData).filter(([, value]) =>
         value !== undefined && value !== ""
       )
     )
@@ -52,7 +53,13 @@ export async function PUT(
     )
 
     // Notify about the update (for real-time features)
-    await RealTimeUpdateService.notifyExerciseUpdate(exerciseId, updatedExercise)
+    const exerciseForNotification = {
+      ...updatedExercise,
+      description: updatedExercise.description || undefined,
+      videoUrl: updatedExercise.videoUrl || undefined,
+      userId: updatedExercise.userId || undefined
+    }
+    await RealTimeUpdateService.notifyExerciseUpdate(exerciseId, exerciseForNotification)
 
     return NextResponse.json({
       message: "Exercise updated successfully",
@@ -78,7 +85,7 @@ export async function PUT(
 // DELETE /api/admin/exercises/[id] - Delete an exercise (admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -91,6 +98,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Admin privileges required" }, { status: 403 })
     }
 
+    const params = await context.params
     const exerciseId = params.id
 
     // Soft delete the exercise (preserves data integrity)
@@ -126,7 +134,7 @@ export async function DELETE(
 // GET /api/admin/exercises/[id] - Get exercise details with usage stats (admin only)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -139,6 +147,7 @@ export async function GET(
       return NextResponse.json({ error: "Admin privileges required" }, { status: 403 })
     }
 
+    const params = await context.params
     const exerciseId = params.id
 
     // Get exercise details and usage statistics

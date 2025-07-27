@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from "react"
 import { useSession, signOut } from "next-auth/react"
-import { Search, Plus, Dumbbell, User, LogOut } from "lucide-react"
+import { Search, Plus, Dumbbell, LogOut } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CreateExerciseDialog } from "@/components/create-exercise-dialog"
 

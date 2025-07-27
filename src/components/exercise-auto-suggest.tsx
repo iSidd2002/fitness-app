@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Search, Loader2, Plus } from "lucide-react"
-import { toast } from "sonner"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -53,7 +52,7 @@ export function ExerciseAutoSuggest({
 
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
-  const debounceRef = useRef<NodeJS.Timeout>()
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -99,7 +98,9 @@ export function ExerciseAutoSuggest({
             // Limit cache size to prevent memory issues
             if (newCache.size > 50) {
               const firstKey = newCache.keys().next().value
-              newCache.delete(firstKey)
+              if (firstKey) {
+                newCache.delete(firstKey)
+              }
             }
             return newCache
           })
@@ -315,7 +316,7 @@ export function ExerciseAutoSuggest({
                     <div className="flex items-center space-x-2 text-blue-600">
                       <Plus className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        Create new exercise "{value}"
+                        Create new exercise &quot;{value}&quot;
                       </span>
                     </div>
                   </div>

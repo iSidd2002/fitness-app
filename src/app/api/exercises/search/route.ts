@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
     // Sort by relevance score (highest first)
     const sortedExercises = exercisesWithScores
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .map(({ relevanceScore, ...exercise }) => exercise) // Remove score from response
+      .map(({ relevanceScore: _relevanceScore, ...exercise }) => exercise) // Remove score from response
 
     return NextResponse.json({ 
       exercises: sortedExercises,

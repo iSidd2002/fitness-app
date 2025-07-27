@@ -157,7 +157,7 @@ export class ExerciseUpdateService {
               userId: currentExercise.userId,
               isDeleted: false
             },
-            newData: null, // Exercise is completely removed
+            newData: {}, // Exercise is completely removed
             changedAt: new Date()
           }
         })

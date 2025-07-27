@@ -15,14 +15,14 @@ export class WorkoutDataMigration {
       const rawWorkoutExercises = await prisma.$runCommandRaw({
         find: 'WorkoutExercise',
         filter: {}
-      }) as any
+      }) as { cursor: { firstBatch: Array<{ _id: { $oid: string }; exerciseId: { $oid: string } | string; exerciseSnapshot?: unknown; isCustom?: boolean; order?: number }> } }
 
       const allWorkoutExercises = rawWorkoutExercises.cursor.firstBatch
 
       // Filter for exercises without snapshots
-      const workoutExercises = allWorkoutExercises.filter((we: any) =>
+      const workoutExercises = allWorkoutExercises.filter(we =>
         !we.exerciseSnapshot ||
-        (typeof we.exerciseSnapshot === 'object' && Object.keys(we.exerciseSnapshot).length === 0)
+        (typeof we.exerciseSnapshot === 'object' && we.exerciseSnapshot !== null && Object.keys(we.exerciseSnapshot).length === 0)
       )
 
       console.log(`📊 Found ${workoutExercises.length} workout exercises to migrate`)
@@ -46,7 +46,9 @@ export class WorkoutDataMigration {
           for (const we of batch) {
             try {
               // Get the exercise ID from the old exerciseId field
-              const exerciseId = we.exerciseId?.$oid || we.exerciseId
+              const exerciseId = typeof we.exerciseId === 'object' && we.exerciseId?.$oid
+                ? we.exerciseId.$oid
+                : typeof we.exerciseId === 'string' ? we.exerciseId : null
 
               if (!exerciseId) {
                 console.warn(`⚠️  Skipping workout exercise ${we._id.$oid} - no exerciseId found`)
@@ -66,13 +68,19 @@ export class WorkoutDataMigration {
               }
 
               // Create snapshot
-              const snapshot = ExerciseSnapshotService.createSnapshot(exercise)
+              const exerciseForSnapshot = {
+                ...exercise,
+                description: exercise.description || undefined,
+                videoUrl: exercise.videoUrl || undefined,
+                userId: exercise.userId || undefined
+              }
+              const snapshot = ExerciseSnapshotService.createSnapshot(exerciseForSnapshot)
 
               // Update the workout exercise with snapshot data
               await tx.workoutExercise.update({
                 where: { id: we._id.$oid },
                 data: {
-                  exerciseSnapshot: snapshot,
+                  exerciseSnapshot: JSON.parse(JSON.stringify(snapshot)),
                   originalExerciseId: exerciseId, // The original exercise
                   replacementExerciseId: null, // No replacement in old data
                   isReplaced: false, // Old data didn't have replacements
@@ -190,7 +198,7 @@ export class WorkoutDataMigration {
     let fixed = 0
     for (const record of inconsistentRecords) {
       try {
-        const snapshot = record.exerciseSnapshot as any
+        const snapshot = record.exerciseSnapshot as { id?: string }
         if (snapshot && snapshot.id) {
           await prisma.workoutExercise.update({
             where: { id: record.id },

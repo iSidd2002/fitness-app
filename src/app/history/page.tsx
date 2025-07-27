@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
+export const dynamic = 'force-dynamic'
+
+import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { Calendar, Dumbbell, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { AuthGuard } from "@/components/auth-guard"
 
 interface ExerciseSet {
@@ -129,7 +129,7 @@ function HistoryPageContent() {
                 Complete your first workout to see it here!
               </p>
               <Button asChild>
-                <Link href="/">Start Today's Workout</Link>
+                <Link href="/">Start Today&apos;s Workout</Link>
               </Button>
             </CardContent>
           </Card>
@@ -222,8 +222,10 @@ function HistoryPageContent() {
 
 export default function HistoryPage() {
   return (
-    <AuthGuard>
-      <HistoryPageContent />
-    </AuthGuard>
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthGuard>
+        <HistoryPageContent />
+      </AuthGuard>
+    </Suspense>
   )
 }

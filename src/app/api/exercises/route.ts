@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 import { ExerciseUpdateService } from "@/services/exercise-update.service"
-import { RealTimeUpdateService } from "@/services/realtime-update.service"
 
 const createExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),

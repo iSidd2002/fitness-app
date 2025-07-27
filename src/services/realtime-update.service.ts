@@ -91,7 +91,7 @@ export class RealTimeUpdateService {
    * Check if user has exercise in current session
    * This would typically check active WebSocket connections or session storage
    */
-  private static async userHasExerciseInSession(userId: string, exerciseId: string): Promise<boolean> {
+  private static async userHasExerciseInSession(_userId: string, _exerciseId: string): Promise<boolean> {
     // In a real implementation, this would check:
     // 1. Active WebSocket connections
     // 2. Current workout sessions

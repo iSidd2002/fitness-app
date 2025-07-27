@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useSession, signOut } from "next-auth/react"
+import { signOut } from "next-auth/react"
 import { Calendar, Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -12,6 +12,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddCustomExerciseDialog } from "@/components/add-custom-exercise-dialog"
 import { ExerciseReplacementDialog } from "@/components/exercise-replacement-dialog"
 import { useAuthGuard } from "@/components/auth-guard"
+
+interface Exercise {
+  id: string
+  name: string
+  description?: string
+  muscleGroup: string
+  equipment: string
+  videoUrl?: string
+  userId?: string
+}
 
 interface ExerciseSet {
   id?: string
@@ -60,14 +70,9 @@ export function DailyWorkoutDashboard() {
   const [workoutExercises, setWorkoutExercises] = useState<WorkoutExercise[]>([])
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isReplacementDialogOpen, setIsReplacementDialogOpen] = useState(false)
-  const [exerciseToReplace, setExerciseToReplace] = useState<{ index: number; exercise: any } | null>(null)
+  const [exerciseToReplace, setExerciseToReplace] = useState<{ index: number; exercise: Exercise } | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-
-  // Early return if not authenticated
-  if (isLoading || !isAuthenticated) {
-    return null // AuthGuard will handle the display
-  }
 
   const today = new Date()
   const dayOfWeek = today.getDay()
@@ -76,6 +81,11 @@ export function DailyWorkoutDashboard() {
   useEffect(() => {
     fetchTodaysSchedule()
   }, [])
+
+  // Early return if not authenticated
+  if (isLoading || !isAuthenticated) {
+    return null // AuthGuard will handle the display
+  }
 
   const fetchTodaysSchedule = async () => {
     try {
@@ -86,7 +96,7 @@ export function DailyWorkoutDashboard() {
         
         // Initialize workout exercises with admin-assigned exercises
         if (data.schedule?.exercises) {
-          const initialExercises: WorkoutExercise[] = data.schedule.exercises.map((ex: any) => ({
+          const initialExercises: WorkoutExercise[] = data.schedule.exercises.map((ex: { exerciseId: string; exercise: Exercise; order: number }) => ({
             exerciseId: ex.exerciseId,
             exercise: ex.exercise,
             isCustom: false,
@@ -96,8 +106,8 @@ export function DailyWorkoutDashboard() {
           setWorkoutExercises(initialExercises)
         }
       }
-    } catch (error) {
-      toast.error("Failed to load today's schedule")
+    } catch {
+      toast.error("Failed to load today&apos;s schedule")
     } finally {
       setLoading(false)
     }
@@ -137,7 +147,7 @@ export function DailyWorkoutDashboard() {
     }
   }
 
-  const addCustomExercise = (exercise: any) => {
+  const addCustomExercise = (exercise: Exercise) => {
     const newExercise: WorkoutExercise = {
       exerciseId: exercise.id,
       exercise: exercise,
@@ -147,7 +157,7 @@ export function DailyWorkoutDashboard() {
     }
 
     setWorkoutExercises([...workoutExercises, newExercise])
-    toast.success("Exercise added to today's workout!")
+    toast.success("Exercise added to today&apos;s workout!")
   }
 
   const handleReplaceExercise = (exerciseIndex: number) => {
@@ -156,7 +166,7 @@ export function DailyWorkoutDashboard() {
     setIsReplacementDialogOpen(true)
   }
 
-  const handleExerciseReplaced = (newExercise: any) => {
+  const handleExerciseReplaced = (newExercise: Exercise) => {
     if (exerciseToReplace) {
       const newExercises = [...workoutExercises]
       const oldExercise = newExercises[exerciseToReplace.index]
@@ -213,7 +223,7 @@ export function DailyWorkoutDashboard() {
       } else {
         toast.error("Failed to save workout")
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to save workout")
     } finally {
       setSaving(false)
@@ -223,7 +233,7 @@ export function DailyWorkoutDashboard() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg">Loading today's workout...</div>
+        <div className="text-lg">Loading today&apos;s workout...</div>
       </div>
     )
   }

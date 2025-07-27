@@ -78,9 +78,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Create workout exercise with snapshot
+        const exerciseForSnapshot = {
+          ...currentExercise,
+          description: currentExercise.description || undefined,
+          videoUrl: currentExercise.videoUrl || undefined,
+          userId: currentExercise.userId || undefined
+        }
         const workoutExercise = await ExerciseSnapshotService.saveWorkoutExercise(
           workoutLog.id,
-          currentExercise,
+          exerciseForSnapshot,
           exercise.order,
           !!exercise.originalExerciseId, // isReplaced
           exercise.originalExerciseId

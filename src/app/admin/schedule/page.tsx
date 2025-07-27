@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+export const dynamic = 'force-dynamic'
+
+import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd"
+import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd"
 import { Search, Plus, Trash2, GripVertical, Settings, ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 
@@ -110,7 +111,7 @@ function AdminSchedulePageContent() {
     }
   }
 
-  const handleAutoExerciseSelect = async (exercise: any) => {
+  const handleAutoExerciseSelect = async (exercise: Exercise) => {
     // Check if exercise already exists in the selected day
     const daySchedule = schedule.find(s => s.dayOfWeek === selectedDay)
     const exerciseExists = daySchedule?.exercises.some(ex => ex.exerciseId === exercise.id)
@@ -219,10 +220,10 @@ function AdminSchedulePageContent() {
     }
   }
 
-  const handleDragEnd = async (result: any) => {
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
 
-    const dayOfWeek = parseInt(result.droppableId)
+    const dayOfWeek = parseInt(result.source.droppableId)
     const daySchedule = schedule.find(s => s.dayOfWeek === dayOfWeek)
     if (!daySchedule) return
 
@@ -248,7 +249,7 @@ function AdminSchedulePageContent() {
           exercises: items.map((item, index) => ({ id: item.id, order: index + 1 }))
         })
       })
-    } catch (error) {
+    } catch {
       toast.error("Failed to reorder exercises")
       fetchData() // Revert on error
     }
@@ -262,7 +263,7 @@ function AdminSchedulePageContent() {
     )
   }
 
-  const currentDaySchedule = schedule.find(s => s.dayOfWeek === selectedDay)
+  // const currentDaySchedule = schedule.find(s => s.dayOfWeek === selectedDay)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -591,7 +592,7 @@ function AdminSchedulePageContent() {
               </div>
               <div>
                 <p className="font-medium mb-1">🚫 Duplicate Prevention</p>
-                <p>Can't add the same exercise twice to one day</p>
+                <p>Can&apos;t add the same exercise twice to one day</p>
               </div>
               <div>
                 <p className="font-medium mb-1">⚡ Real-time Updates</p>
@@ -607,8 +608,10 @@ function AdminSchedulePageContent() {
 
 export default function AdminSchedulePage() {
   return (
-    <AuthGuard requireAdmin={true}>
-      <AdminSchedulePageContent />
-    </AuthGuard>
+    <Suspense fallback={<div>Loading...</div>}>
+      <AuthGuard requireAdmin={true}>
+        <AdminSchedulePageContent />
+      </AuthGuard>
+    </Suspense>
   )
 }

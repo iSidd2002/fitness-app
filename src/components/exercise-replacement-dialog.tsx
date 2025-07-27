@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { Search, RefreshCw, ArrowRight } from "lucide-react"
 
@@ -49,11 +49,35 @@ export function ExerciseReplacementDialog({
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("search")
 
+  const fetchExercises = useCallback(async () => {
+    setLoading(true)
+    try {
+      const response = await fetch("/api/exercises")
+      if (response.ok) {
+        const data = await response.json()
+        const exercises = data.exercises.filter((ex: Exercise) => ex.id !== originalExercise.id)
+        setAllExercises(exercises)
+
+        // Find similar exercises (same muscle group or equipment)
+        const similar = exercises.filter((ex: Exercise) =>
+          ex.muscleGroup === originalExercise.muscleGroup ||
+          ex.equipment === originalExercise.equipment
+        )
+        setSimilarExercises(similar)
+        setFilteredExercises(exercises)
+      }
+    } catch {
+      toast.error("Failed to load exercises")
+    } finally {
+      setLoading(false)
+    }
+  }, [originalExercise.id, originalExercise.muscleGroup, originalExercise.equipment])
+
   useEffect(() => {
     if (open) {
       fetchExercises()
     }
-  }, [open])
+  }, [open, fetchExercises])
 
   useEffect(() => {
     if (!searchTerm.trim()) {
@@ -67,30 +91,6 @@ export function ExerciseReplacementDialog({
       setFilteredExercises(filtered)
     }
   }, [allExercises, searchTerm])
-
-  const fetchExercises = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch("/api/exercises")
-      if (response.ok) {
-        const data = await response.json()
-        const exercises = data.exercises.filter((ex: Exercise) => ex.id !== originalExercise.id)
-        setAllExercises(exercises)
-        
-        // Find similar exercises (same muscle group or equipment)
-        const similar = exercises.filter((ex: Exercise) => 
-          ex.muscleGroup === originalExercise.muscleGroup || 
-          ex.equipment === originalExercise.equipment
-        )
-        setSimilarExercises(similar)
-        setFilteredExercises(exercises)
-      }
-    } catch (error) {
-      toast.error("Failed to load exercises")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSelectExercise = (exercise: Exercise) => {
     onExerciseReplaced(exercise)

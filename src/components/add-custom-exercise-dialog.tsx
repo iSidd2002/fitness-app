@@ -114,7 +114,7 @@ export function AddCustomExerciseDialog({
         const data = await response.json()
         setMyExercises(data.exercises)
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to load your exercises")
     } finally {
       setLoading(false)
@@ -173,7 +173,7 @@ export function AddCustomExerciseDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Add Exercise to Today's Workout</DialogTitle>
+          <DialogTitle>Add Exercise to Today&apos;s Workout</DialogTitle>
           <DialogDescription>
             Choose from your custom exercises or create a new one
           </DialogDescription>
@@ -227,7 +227,7 @@ export function AddCustomExerciseDialog({
                 <div className="text-center py-4">Loading your exercises...</div>
               ) : filteredExercises.length === 0 ? (
                 <div className="text-center py-4 text-gray-500">
-                  {searchTerm ? "No exercises found matching your search." : "You haven't created any custom exercises yet."}
+                  {searchTerm ? "No exercises found matching your search." : "You haven&apos;t created any custom exercises yet."}
                 </div>
               ) : (
                 filteredExercises.map((exercise) => (
