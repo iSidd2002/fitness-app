@@ -286,7 +286,16 @@ export function FlexibleWorkoutDashboard() {
                   <span className="hidden sm:inline ml-2">History</span>
                 </Button>
               </Link>
-              
+
+              {session?.user?.role === "ADMIN" && (
+                <Link href="/admin/schedule">
+                  <Button variant="ghost" size="sm" className="p-2 text-blue-600 hover:text-blue-700">
+                    <Settings className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-2">Admin</span>
+                  </Button>
+                </Link>
+              )}
+
               <span className="hidden sm:inline text-sm text-gray-600">
                 {session?.user?.name}
               </span>
