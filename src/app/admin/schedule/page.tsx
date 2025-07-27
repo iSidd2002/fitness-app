@@ -19,6 +19,7 @@ import { ExerciseAutoSuggest } from "@/components/exercise-auto-suggest"
 import { AuthGuard } from "@/components/auth-guard"
 import { ImportExercisesDialog } from "@/components/import-exercises-dialog"
 import { AdminCreateExerciseDialog } from "@/components/admin-create-exercise-dialog"
+import { DayTypeEditorDialog } from "@/components/day-type-editor-dialog"
 
 interface Exercise {
   id: string
@@ -67,6 +68,9 @@ function AdminSchedulePageContent() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [initializing, setInitializing] = useState(false)
+  const [dayTypeEditorOpen, setDayTypeEditorOpen] = useState(false)
+  const [editingDay, setEditingDay] = useState<{ dayOfWeek: number; name: string; exerciseCount: number } | null>(null)
+  const [dayTypeLoading, setDayTypeLoading] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -292,6 +296,50 @@ function AdminSchedulePageContent() {
     } catch {
       toast.error("Failed to reorder exercises")
       fetchData() // Revert on error
+    }
+  }
+
+  const handleEditDayType = (dayOfWeek: number, currentName: string, exerciseCount: number) => {
+    setEditingDay({ dayOfWeek, name: currentName, exerciseCount })
+    setDayTypeEditorOpen(true)
+  }
+
+  const handleSaveDayType = async (newDayName: string) => {
+    if (!editingDay) return
+
+    setDayTypeLoading(true)
+    try {
+      const response = await fetch("/api/admin/schedule/update-day-type", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          dayOfWeek: editingDay.dayOfWeek,
+          newDayName
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update day type")
+      }
+
+      // Update local state
+      setSchedule(prev => prev.map(day =>
+        day.dayOfWeek === editingDay.dayOfWeek
+          ? { ...day, name: newDayName }
+          : day
+      ))
+
+      toast.success(`Day type updated! ${result.previousName} → ${result.newName}`)
+      setDayTypeEditorOpen(false)
+      setEditingDay(null)
+
+    } catch (error) {
+      console.error("Error updating day type:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to update day type")
+    } finally {
+      setDayTypeLoading(false)
     }
   }
 
@@ -576,13 +624,32 @@ function AdminSchedulePageContent() {
                 <Card key={day.value} className="h-fit">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{day.label}</CardTitle>
+                      <div className="flex items-center space-x-2">
+                        <CardTitle className="text-lg">{day.label}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditDayType(day.value, daySchedule?.name || day.label, exerciseCount)}
+                          className="p-1 h-6 w-6 opacity-60 hover:opacity-100"
+                          title="Edit workout type"
+                        >
+                          <Settings className="h-3 w-3" />
+                        </Button>
+                      </div>
                       <Badge variant={exerciseCount > 0 ? "default" : "secondary"} className="text-xs">
                         {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
                       </Badge>
                     </div>
                     {daySchedule?.name && daySchedule.name !== day.label && (
-                      <p className="text-sm text-blue-600 font-medium">{daySchedule.name}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditDayType(day.value, daySchedule.name, exerciseCount)}
+                        className="text-sm text-blue-600 font-medium hover:text-blue-700 hover:bg-blue-50 p-1 h-auto justify-start"
+                      >
+                        {daySchedule.name}
+                        <Settings className="h-3 w-3 ml-1 opacity-60" />
+                      </Button>
                     )}
                   </CardHeader>
                   <CardContent className="pt-0">
@@ -693,6 +760,19 @@ function AdminSchedulePageContent() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Day Type Editor Dialog */}
+        {editingDay && (
+          <DayTypeEditorDialog
+            open={dayTypeEditorOpen}
+            onOpenChange={setDayTypeEditorOpen}
+            dayOfWeek={editingDay.dayOfWeek}
+            currentDayName={editingDay.name}
+            exerciseCount={editingDay.exerciseCount}
+            onSave={handleSaveDayType}
+            loading={dayTypeLoading}
+          />
+        )}
       </div>
     </div>
   )
