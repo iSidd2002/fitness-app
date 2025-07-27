@@ -26,12 +26,15 @@ export class ExerciseUpdateService {
       }
 
       // 2. Update the exercise
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updateData: any = {
+        ...updates,
+        updatedAt: new Date()
+      }
+
       const updatedExercise = await tx.exercise.update({
         where: { id: exerciseId },
-        data: {
-          ...updates,
-          updatedAt: new Date()
-        }
+        data: updateData
       })
 
       // 3. Log the change for audit trail
@@ -47,6 +50,7 @@ export class ExerciseUpdateService {
             muscleGroup: currentExercise.muscleGroup,
             equipment: currentExercise.equipment,
             videoUrl: currentExercise.videoUrl,
+            referenceLinks: currentExercise.referenceLinks,
             userId: currentExercise.userId,
             updatedAt: currentExercise.updatedAt.toISOString()
           },
@@ -57,6 +61,7 @@ export class ExerciseUpdateService {
             muscleGroup: updatedExercise.muscleGroup,
             equipment: updatedExercise.equipment,
             videoUrl: updatedExercise.videoUrl,
+            referenceLinks: updatedExercise.referenceLinks,
             userId: updatedExercise.userId,
             updatedAt: updatedExercise.updatedAt.toISOString()
           },
@@ -179,12 +184,15 @@ export class ExerciseUpdateService {
     createdBy: string
   ) {
     return await prisma.$transaction(async (tx) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const createData: any = {
+        ...exerciseData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+
       const newExercise = await tx.exercise.create({
-        data: {
-          ...exerciseData,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
+        data: createData
       })
 
       // Log the creation

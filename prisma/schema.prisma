@@ -36,6 +36,7 @@ model Exercise {
   muscleGroup      String
   equipment        String
   videoUrl         String?
+  referenceLinks   Json?    // Array of reference links with title, url, type
   userId           String?  @db.ObjectId  // null for global exercises, userId for custom exercises
 
   // Soft delete fields

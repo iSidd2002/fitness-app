@@ -19,6 +19,7 @@ import { ExerciseAutoSuggest } from "@/components/exercise-auto-suggest"
 import { AuthGuard } from "@/components/auth-guard"
 import { ImportExercisesDialog } from "@/components/import-exercises-dialog"
 import { AdminCreateExerciseDialog } from "@/components/admin-create-exercise-dialog"
+import { AdminEditExerciseDialog } from "@/components/admin-edit-exercise-dialog"
 import { DayTypeEditorDialog } from "@/components/day-type-editor-dialog"
 
 interface Exercise {
@@ -703,15 +704,22 @@ function AdminSchedulePageContent() {
                                             </div>
                                           </div>
                                         </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleRemoveExercise(scheduleExercise.id, scheduleExercise.exercise.name)}
-                                          disabled={saving}
-                                          className="ml-2 h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                          <AdminEditExerciseDialog
+                                            scheduleExercise={scheduleExercise}
+                                            onExerciseUpdated={fetchData}
+                                            disabled={saving}
+                                          />
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => handleRemoveExercise(scheduleExercise.id, scheduleExercise.exercise.name)}
+                                            disabled={saving}
+                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
                                       </div>
                                     </div>
                                   )}

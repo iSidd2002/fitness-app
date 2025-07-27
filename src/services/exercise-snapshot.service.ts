@@ -1,5 +1,13 @@
 import { prisma } from "@/lib/prisma"
 
+// Reference link structure
+export interface ReferenceLink {
+  id: string
+  title: string
+  url: string
+  type: 'tutorial' | 'form-guide' | 'reference' | 'other'
+}
+
 // Exercise snapshot structure
 export interface ExerciseSnapshot {
   id: string
@@ -8,6 +16,7 @@ export interface ExerciseSnapshot {
   muscleGroup: string
   equipment: string
   videoUrl?: string
+  referenceLinks?: ReferenceLink[]
   userId?: string
   capturedAt: string // ISO timestamp
   version: number    // For schema migrations
@@ -21,6 +30,7 @@ export interface Exercise {
   muscleGroup: string
   equipment: string
   videoUrl?: string
+  referenceLinks?: ReferenceLink[]
   userId?: string
   createdAt?: Date
   updatedAt?: Date
@@ -40,6 +50,7 @@ export class ExerciseSnapshotService {
       muscleGroup: exercise.muscleGroup,
       equipment: exercise.equipment,
       videoUrl: exercise.videoUrl,
+      referenceLinks: exercise.referenceLinks,
       userId: exercise.userId,
       capturedAt: new Date().toISOString(),
       version: 1
@@ -84,6 +95,7 @@ export class ExerciseSnapshotService {
       muscleGroup: snapshot.muscleGroup,
       equipment: snapshot.equipment,
       videoUrl: snapshot.videoUrl,
+      referenceLinks: snapshot.referenceLinks,
       userId: snapshot.userId,
       createdAt: new Date(snapshot.capturedAt),
       updatedAt: new Date(snapshot.capturedAt)
@@ -245,6 +257,7 @@ export class ExerciseSnapshotService {
       ...exerciseToSnapshot,
       description: exerciseToSnapshot.description || undefined,
       videoUrl: exerciseToSnapshot.videoUrl || undefined,
+      referenceLinks: exerciseToSnapshot.referenceLinks as unknown as ReferenceLink[] || undefined,
       userId: exerciseToSnapshot.userId || undefined
     }
     const snapshot = this.createSnapshot(exerciseForSnapshot)

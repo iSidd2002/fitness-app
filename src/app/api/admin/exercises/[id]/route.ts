@@ -4,6 +4,14 @@ import { authOptions } from "@/lib/auth"
 import { z } from "zod"
 import { ExerciseUpdateService } from "@/services/exercise-update.service"
 import { RealTimeUpdateService } from "@/services/realtime-update.service"
+import { ReferenceLink } from "@/services/exercise-snapshot.service"
+
+const referenceLinkSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1, "Link title is required"),
+  url: z.string().url("Invalid URL"),
+  type: z.enum(["tutorial", "form-guide", "reference", "other"])
+})
 
 const updateExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required").optional(),
@@ -11,6 +19,7 @@ const updateExerciseSchema = z.object({
   muscleGroup: z.string().min(1, "Muscle group is required").optional(),
   equipment: z.string().min(1, "Equipment is required").optional(),
   videoUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  referenceLinks: z.array(referenceLinkSchema).optional(),
 })
 
 // PUT /api/admin/exercises/[id] - Update an exercise (admin only)
@@ -57,6 +66,7 @@ export async function PUT(
       ...updatedExercise,
       description: updatedExercise.description || undefined,
       videoUrl: updatedExercise.videoUrl || undefined,
+      referenceLinks: updatedExercise.referenceLinks as unknown as ReferenceLink[] || undefined,
       userId: updatedExercise.userId || undefined
     }
     await RealTimeUpdateService.notifyExerciseUpdate(exerciseId, exerciseForNotification)

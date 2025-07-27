@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { ExerciseUpdateService } from "@/services/exercise-update.service"
 import { RealTimeUpdateService } from "@/services/realtime-update.service"
+import { ReferenceLink } from "@/services/exercise-snapshot.service"
 
 // POST /api/admin/exercises/[id]/restore - Restore a soft-deleted exercise (admin only)
 export async function POST(
@@ -34,6 +35,7 @@ export async function POST(
       ...restoredExercise,
       description: restoredExercise.description || undefined,
       videoUrl: restoredExercise.videoUrl || undefined,
+      referenceLinks: restoredExercise.referenceLinks as unknown as ReferenceLink[] || undefined,
       userId: restoredExercise.userId || undefined
     }
     await RealTimeUpdateService.notifyExerciseRestored(exerciseId, exerciseForNotification)

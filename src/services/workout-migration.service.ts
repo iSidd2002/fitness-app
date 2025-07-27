@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma"
-import { ExerciseSnapshotService } from "./exercise-snapshot.service"
+import { ExerciseSnapshotService, ReferenceLink } from "./exercise-snapshot.service"
 
 export class WorkoutDataMigration {
   
@@ -72,6 +72,7 @@ export class WorkoutDataMigration {
                 ...exercise,
                 description: exercise.description || undefined,
                 videoUrl: exercise.videoUrl || undefined,
+                referenceLinks: exercise.referenceLinks as unknown as ReferenceLink[] || undefined,
                 userId: exercise.userId || undefined
               }
               const snapshot = ExerciseSnapshotService.createSnapshot(exerciseForSnapshot)
