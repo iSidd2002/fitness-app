@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
-import { Calendar, Dumbbell, ArrowLeft } from "lucide-react"
+import { Calendar, Dumbbell, ArrowLeft, BarChart3 } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -103,17 +103,28 @@ function HistoryPageContent() {
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16">
-            <Button variant="ghost" size="sm" asChild className="mr-4">
-              <Link href="/">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Dashboard
-              </Link>
-            </Button>
-            
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="sm" asChild>
+                <Link href="/">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Workout
+                </Link>
+              </Button>
+
+              <div className="flex items-center space-x-2">
+                <Calendar className="h-6 w-6 text-blue-600" />
+                <h1 className="text-xl font-bold text-gray-900">Workout History</h1>
+              </div>
+            </div>
+
             <div className="flex items-center space-x-2">
-              <Calendar className="h-6 w-6 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Workout History</h1>
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-50">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </Button>
+              </Link>
             </div>
           </div>
         </div>

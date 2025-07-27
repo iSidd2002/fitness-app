@@ -6,7 +6,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd"
-import { Search, Plus, Trash2, GripVertical, Settings, ArrowLeft, Save, Calendar, Loader2 } from "lucide-react"
+import { Search, Plus, Trash2, GripVertical, Settings, ArrowLeft, Save, Calendar, Loader2, Play } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -358,8 +358,8 @@ function AdminSchedulePageContent() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="mobile-header flex items-center justify-between min-h-[56px] sm:h-16">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/">
@@ -387,7 +387,7 @@ function AdminSchedulePageContent() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -616,28 +616,28 @@ function AdminSchedulePageContent() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+            <div className="admin-schedule-grid grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {daysOfWeek.map((day) => {
               const daySchedule = schedule.find(s => s.dayOfWeek === day.value)
               const exerciseCount = daySchedule?.exercises.length || 0
 
               return (
-                <Card key={day.value} className="h-fit">
+                <Card key={day.value} className="h-fit overflow-hidden">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <CardTitle className="text-lg">{day.label}</CardTitle>
+                    <div className="admin-day-header flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center space-x-2 min-w-0 flex-1">
+                        <CardTitle className="text-lg truncate">{day.label}</CardTitle>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditDayType(day.value, daySchedule?.name || day.label, exerciseCount)}
-                          className="p-1 h-6 w-6 opacity-60 hover:opacity-100"
+                          className="p-1 h-6 w-6 opacity-60 hover:opacity-100 flex-shrink-0"
                           title="Edit workout type"
                         >
                           <Settings className="h-3 w-3" />
                         </Button>
                       </div>
-                      <Badge variant={exerciseCount > 0 ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={exerciseCount > 0 ? "default" : "secondary"} className="text-xs flex-shrink-0">
                         {exerciseCount} exercise{exerciseCount !== 1 ? 's' : ''}
                       </Badge>
                     </div>
@@ -660,7 +660,7 @@ function AdminSchedulePageContent() {
                           <div
                             {...provided.droppableProps}
                             ref={provided.innerRef}
-                            className={`space-y-2 min-h-[100px] p-2 rounded-lg transition-colors ${
+                            className={`space-y-3 min-h-[100px] p-3 rounded-lg transition-colors ${
                               snapshot.isDraggingOver ? 'bg-blue-50 border-2 border-blue-200 border-dashed' : 'bg-gray-50'
                             }`}
                           >
@@ -676,12 +676,12 @@ function AdminSchedulePageContent() {
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.draggableProps}
-                                      className={`bg-white border rounded-lg p-3 shadow-sm transition-all ${
+                                      className={`admin-exercise-card bg-white border rounded-lg p-4 shadow-sm transition-all ${
                                         snapshot.isDragging ? 'shadow-lg rotate-2' : 'hover:shadow-md'
-                                      }`}
+                                      } min-h-[90px]`}
                                     >
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div className="flex-1 min-w-0 pr-2">
                                           <div className="flex items-center space-x-2">
                                             <div
                                               {...provided.dragHandleProps}
@@ -689,22 +689,35 @@ function AdminSchedulePageContent() {
                                             >
                                               <GripVertical className="h-4 w-4 text-gray-400" />
                                             </div>
-                                            <div className="flex-1">
-                                              <p className="font-medium text-sm truncate">
+                                            <div className="flex-1 min-w-0">
+                                              <p className="font-medium text-sm truncate mb-2">
                                                 {scheduleExercise.exercise.name}
                                               </p>
-                                              <div className="flex flex-wrap gap-1 mt-1">
-                                                <Badge variant="outline" className="text-xs">
+                                              <div className="flex flex-wrap gap-2">
+                                                <Badge variant="outline" className="text-xs whitespace-nowrap">
                                                   {scheduleExercise.exercise.muscleGroup}
                                                 </Badge>
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-xs whitespace-nowrap">
                                                   {scheduleExercise.exercise.equipment}
                                                 </Badge>
                                               </div>
                                             </div>
                                           </div>
                                         </div>
-                                        <div className="flex items-center gap-1">
+                                        <div className="flex items-center gap-3 flex-shrink-0">
+                                          {/* Video Link Button */}
+                                          {scheduleExercise.exercise.videoUrl && (
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => window.open(scheduleExercise.exercise.videoUrl, '_blank')}
+                                              className="h-9 w-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 touch-manipulation"
+                                              title="Watch exercise video"
+                                            >
+                                              <Play className="h-4 w-4" />
+                                            </Button>
+                                          )}
+
                                           <AdminEditExerciseDialog
                                             scheduleExercise={scheduleExercise}
                                             onExerciseUpdated={fetchData}
@@ -715,7 +728,7 @@ function AdminSchedulePageContent() {
                                             size="sm"
                                             onClick={() => handleRemoveExercise(scheduleExercise.id, scheduleExercise.exercise.name)}
                                             disabled={saving}
-                                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-manipulation"
                                           >
                                             <Trash2 className="h-4 w-4" />
                                           </Button>

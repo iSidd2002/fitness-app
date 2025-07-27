@@ -145,4 +145,108 @@
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
+
+  /* Prevent text selection on touch devices for better UX */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Comprehensive mobile optimizations */
+  @media (max-width: 768px) {
+    /* Admin schedule improvements */
+    .admin-schedule-grid {
+      gap: 1rem !important;
+    }
+
+    .admin-exercise-card {
+      min-height: 100px !important;
+      padding: 1rem !important;
+    }
+
+    .admin-day-header {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    /* General mobile improvements */
+    .mobile-container {
+      padding: 0.75rem !important;
+    }
+
+    .mobile-card {
+      margin-bottom: 1rem !important;
+      border-radius: 0.5rem !important;
+    }
+
+    .mobile-button {
+      min-height: 44px !important;
+      min-width: 44px !important;
+      padding: 0.75rem 1rem !important;
+    }
+
+    .mobile-input {
+      min-height: 44px !important;
+      font-size: 16px !important; /* Prevents zoom on iOS */
+    }
+
+    .mobile-text {
+      font-size: 0.875rem !important;
+      line-height: 1.25rem !important;
+    }
+
+    .mobile-header {
+      padding: 0.75rem 1rem !important;
+      min-height: 56px !important;
+    }
+
+    /* Workout interface mobile optimizations */
+    .workout-exercise-card {
+      margin-bottom: 1rem !important;
+      padding: 1rem !important;
+    }
+
+    .workout-sets-grid {
+      gap: 0.75rem !important;
+    }
+
+    /* Heatmap mobile optimizations */
+    .workout-heatmap {
+      overflow-x: auto !important;
+      padding-bottom: 1rem !important;
+    }
+
+    .heatmap-stats {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 0.75rem !important;
+    }
+
+    /* Navigation mobile optimizations */
+    .mobile-nav {
+      padding: 0.5rem !important;
+      gap: 0.5rem !important;
+    }
+
+    .mobile-nav-button {
+      min-width: 44px !important;
+      min-height: 44px !important;
+    }
+  }
+
+  /* Extra small screens (phones in portrait) */
+  @media (max-width: 480px) {
+    .mobile-container {
+      padding: 0.5rem !important;
+    }
+
+    .mobile-text {
+      font-size: 0.8rem !important;
+    }
+
+    .heatmap-stats {
+      grid-template-columns: 1fr !important;
+    }
+  }
 }

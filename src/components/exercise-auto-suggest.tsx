@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Search, Loader2, Plus } from "lucide-react"
+import { Search, Loader2, Plus, Play } from "lucide-react"
 
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -295,6 +295,12 @@ export function ExerciseAutoSuggest({
                           {exercise.userId && (
                             <Badge variant="secondary" className="text-xs">
                               Custom
+                            </Badge>
+                          )}
+                          {exercise.videoUrl && (
+                            <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+                              <Play className="h-3 w-3 mr-1" />
+                              Video
                             </Badge>
                           )}
                         </div>

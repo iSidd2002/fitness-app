@@ -205,7 +205,7 @@ export function AdminEditExerciseDialog({
           variant="ghost"
           size="sm"
           disabled={disabled}
-          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+          className="h-9 w-9 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50 touch-manipulation"
         >
           <Edit className="h-4 w-4" />
         </Button>

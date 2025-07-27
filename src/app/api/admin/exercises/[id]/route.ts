@@ -15,10 +15,14 @@ const referenceLinkSchema = z.object({
 
 const updateExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required").optional(),
-  description: z.string().optional(),
+  description: z.string().nullable().optional(),
   muscleGroup: z.string().min(1, "Muscle group is required").optional(),
   equipment: z.string().min(1, "Equipment is required").optional(),
-  videoUrl: z.string().url("Invalid URL").optional().or(z.literal("")),
+  videoUrl: z.union([
+    z.string().url("Invalid URL"),
+    z.literal(""),
+    z.null()
+  ]).optional(),
   referenceLinks: z.array(referenceLinkSchema).optional(),
 })
 
@@ -43,7 +47,7 @@ export async function PUT(
     const body = await request.json()
     const validatedData = updateExerciseSchema.parse(body)
 
-    // Remove empty strings and undefined values
+    // Remove empty strings and undefined values, but keep null values for clearing fields
     const updates = Object.fromEntries(
       Object.entries(validatedData).filter(([, value]) =>
         value !== undefined && value !== ""

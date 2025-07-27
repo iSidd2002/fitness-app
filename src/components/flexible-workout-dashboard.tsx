@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { signOut } from "next-auth/react"
-import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Trophy } from "lucide-react"
+import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Trophy, BarChart3, Play, ExternalLink } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -15,6 +15,7 @@ import { ExerciseReplacementDialog } from "@/components/exercise-replacement-dia
 import { DayNavigation } from "@/components/day-navigation"
 import { DaySwapConfirmationDialog } from "@/components/day-swap-confirmation-dialog"
 import { WorkoutStatusIndicator } from "@/components/workout-status-indicator"
+import { FireStreakIndicator } from "@/components/fire-streak-indicator"
 import { useAuthGuard } from "@/components/auth-guard"
 
 interface Exercise {
@@ -300,6 +301,8 @@ export function FlexibleWorkoutDashboard() {
         toast.success("Workout saved successfully! 🎉")
         // Reset the workout
         fetchDaySchedule(selectedDay)
+        // Trigger streak refresh
+        window.dispatchEvent(new CustomEvent('workoutSaved'))
       } else {
         toast.error("Failed to save workout")
       }
@@ -322,31 +325,47 @@ export function FlexibleWorkoutDashboard() {
     <div className="min-h-screen bg-gray-50">
       {/* Mobile-friendly header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="mobile-header flex justify-between items-center min-h-[56px] sm:h-16">
             <div className="flex items-center space-x-2 min-w-0 flex-1">
               <Dumbbell className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
               <div className="min-w-0 flex-1">
-                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
-                  <span className="hidden sm:inline">Siddhant&apos;s Workout Plan</span>
-                  <span className="sm:hidden">Workout Plan</span>
-                </h1>
-                <p className="text-xs text-gray-500">
-                  {selectedDay === today ? "Today" : daysOfWeek[selectedDay]}
-                </p>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
+                      <span className="hidden sm:inline">Siddhant&apos;s Workout Plan</span>
+                      <span className="sm:hidden">Workout Plan</span>
+                    </h1>
+                    <p className="text-xs text-gray-500">
+                      {selectedDay === today ? "Today" : daysOfWeek[selectedDay]}
+                    </p>
+                  </div>
+                  {/* Mobile Fire Streak Indicator */}
+                  <FireStreakIndicator className="sm:hidden flex-shrink-0" />
+                </div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-1 sm:space-x-2">
+            <div className="mobile-nav flex items-center space-x-1 sm:space-x-2">
+              {/* Fire Streak Indicator */}
+              <FireStreakIndicator className="hidden sm:flex" />
+
+              <Link href="/dashboard">
+                <Button variant="ghost" size="sm" className="mobile-nav-button h-11 w-11 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 touch-manipulation">
+                  <BarChart3 className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-2">Dashboard</span>
+                </Button>
+              </Link>
+
               <Link href="/leaderboard">
-                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2">
+                <Button variant="ghost" size="sm" className="mobile-nav-button h-11 w-11 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 touch-manipulation">
                   <Trophy className="h-4 w-4" />
                   <span className="hidden sm:inline ml-2">Leaderboard</span>
                 </Button>
               </Link>
 
               <Link href="/history">
-                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2">
+                <Button variant="ghost" size="sm" className="mobile-nav-button h-11 w-11 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 touch-manipulation">
                   <History className="h-4 w-4" />
                   <span className="hidden sm:inline ml-2">History</span>
                 </Button>
@@ -378,7 +397,7 @@ export function FlexibleWorkoutDashboard() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mobile-container max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         {/* Day Navigation */}
         <DayNavigation
           selectedDay={selectedDay}
@@ -419,22 +438,33 @@ export function FlexibleWorkoutDashboard() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
+          <Link href="/dashboard">
+            <Button
+              variant="outline"
+              size="sm"
+              className="mobile-button gap-2 text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300 hover:bg-purple-50 touch-manipulation"
+            >
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
+            </Button>
+          </Link>
+
           <Button
             onClick={() => setIsAddDialogOpen(true)}
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="mobile-button gap-2 touch-manipulation"
           >
             <Plus className="h-4 w-4" />
             Add Exercise
           </Button>
-          
+
           <Button
             onClick={() => fetchDaySchedule(selectedDay)}
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="mobile-button gap-2 touch-manipulation"
             disabled={dayLoading}
           >
             <RefreshCw className={`h-4 w-4 ${dayLoading ? 'animate-spin' : ''}`} />
@@ -518,7 +548,7 @@ export function FlexibleWorkoutDashboard() {
             {/* Individual Exercises */}
             {workoutExercises.length > 0 && (
               workoutExercises.map((workoutExercise, exerciseIndex) => (
-                <Card key={`${workoutExercise.exerciseId}-${exerciseIndex}`}>
+                <Card key={`${workoutExercise.exerciseId}-${exerciseIndex}`} className="workout-exercise-card mobile-card">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
@@ -546,11 +576,24 @@ export function FlexibleWorkoutDashboard() {
                       </div>
                       
                       <div className="flex items-center space-x-1 sm:space-x-2">
+                        {/* Video Link Button */}
+                        {workoutExercise.exercise.videoUrl && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => window.open(workoutExercise.exercise.videoUrl, '_blank')}
+                            className="text-green-600 hover:text-green-700 h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation"
+                            title="Watch exercise video"
+                          >
+                            <Play className="h-4 w-4" />
+                          </Button>
+                        )}
+
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleReplaceExercise(exerciseIndex)}
-                          className="text-blue-600 hover:text-blue-700 h-10 w-10 sm:h-8 sm:w-8 p-0"
+                          className="text-blue-600 hover:text-blue-700 h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation"
                         >
                           <Settings className="h-4 w-4" />
                         </Button>
@@ -558,14 +601,36 @@ export function FlexibleWorkoutDashboard() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveExercise(exerciseIndex)}
-                          className="text-red-600 hover:text-red-700 h-10 w-10 sm:h-8 sm:w-8 p-0"
+                          className="text-red-600 hover:text-red-700 h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  
+
+                  {/* Exercise Description and Video Link */}
+                  {(workoutExercise.exercise.description || workoutExercise.exercise.videoUrl) && (
+                    <div className="px-6 pb-4 border-b">
+                      {workoutExercise.exercise.description && (
+                        <p className="text-sm text-gray-600 mb-3">
+                          {workoutExercise.exercise.description}
+                        </p>
+                      )}
+                      {workoutExercise.exercise.videoUrl && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(workoutExercise.exercise.videoUrl, '_blank')}
+                          className="gap-2 text-green-600 border-green-200 hover:bg-green-50"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Watch Exercise Video
+                        </Button>
+                      )}
+                    </div>
+                  )}
+
                   <CardContent>
                     {/* Sets */}
                     <div className="space-y-3">
@@ -587,7 +652,7 @@ export function FlexibleWorkoutDashboard() {
                               placeholder="0"
                               value={set.reps || ''}
                               onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-                              className="h-10"
+                              className="mobile-input h-11 sm:h-10"
                             />
                             <Input
                               type="number"
@@ -595,7 +660,7 @@ export function FlexibleWorkoutDashboard() {
                               placeholder="0"
                               value={set.weightKg || ''}
                               onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weightKg', parseFloat(e.target.value) || 0)}
-                              className="h-10"
+                              className="mobile-input h-11 sm:h-10"
                             />
                             <Button
                               variant="ghost"
