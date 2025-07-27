@@ -13,49 +13,19 @@ const swapDaysSchema = z.object({
 // POST /api/schedule/swap-days - Swap workout schedules between two days
 export async function POST(request: NextRequest) {
   try {
-    console.log("=== SWAP DAYS API CALLED ===")
-
     const session = await getServerSession(authOptions)
-    console.log("Session check:", {
-      hasSession: !!session,
-      userId: session?.user?.id,
-      userRole: session?.user?.role,
-      userEmail: session?.user?.email
-    })
 
     if (!session?.user?.id) {
-      console.log("No session or user ID, returning 401")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const body = await request.json()
-    console.log("Swap request body:", body)
-
     const validatedData = swapDaysSchema.parse(body)
-    console.log("Validated data:", validatedData)
 
     // Verify the user is swapping their own schedule or is an admin
-    console.log("User verification:", {
-      requestUserId: validatedData.userId,
-      sessionUserId: session.user.id,
-      userRole: session.user.role,
-      isMatch: validatedData.userId === session.user.id,
-      isAdmin: session.user.role === "ADMIN"
-    })
-
     if (validatedData.userId !== session.user.id && session.user.role !== "ADMIN") {
-      console.log("User verification failed - forbidden")
-      return NextResponse.json({
-        error: "Forbidden",
-        details: {
-          requestUserId: validatedData.userId,
-          sessionUserId: session.user.id,
-          userRole: session.user.role
-        }
-      }, { status: 403 })
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
-
-    console.log(`Looking for schedules: fromDay=${validatedData.fromDay}, toDay=${validatedData.toDay}`)
 
     // Get both day schedules
     const [fromDaySchedule, toDaySchedule] = await Promise.all([
@@ -84,7 +54,6 @@ export async function POST(request: NextRequest) {
     let actualToDaySchedule = toDaySchedule
 
     if (!actualFromDaySchedule) {
-      console.log(`Creating missing schedule for day ${validatedData.fromDay}`)
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
       actualFromDaySchedule = await prisma.weeklySchedule.create({
         data: {
@@ -101,7 +70,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!actualToDaySchedule) {
-      console.log(`Creating missing schedule for day ${validatedData.toDay}`)
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
       actualToDaySchedule = await prisma.weeklySchedule.create({
         data: {
@@ -117,21 +85,11 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    console.log("Schedule lookup results:", {
-      fromDaySchedule: actualFromDaySchedule ? { id: actualFromDaySchedule.id, name: actualFromDaySchedule.name, exerciseCount: actualFromDaySchedule.exercises.length } : null,
-      toDaySchedule: actualToDaySchedule ? { id: actualToDaySchedule.id, name: actualToDaySchedule.name, exerciseCount: actualToDaySchedule.exercises.length } : null
-    })
-
     // Perform the swap in a transaction
     await prisma.$transaction(async (tx) => {
       // Get all exercises from both days
       const fromDayExercises = actualFromDaySchedule.exercises
       const toDayExercises = actualToDaySchedule.exercises
-
-      console.log("Swapping exercises:", {
-        fromDayExercises: fromDayExercises.length,
-        toDayExercises: toDayExercises.length
-      })
 
       // Delete all existing schedule exercises for both days
       await tx.scheduleExercise.deleteMany({
@@ -177,8 +135,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Log the swap for audit purposes
-    console.log(`Day swap completed: ${validatedData.fromDay} ↔ ${validatedData.toDay} for user ${validatedData.userId}`)
+
 
     return NextResponse.json({
       message: "Days swapped successfully",
@@ -192,10 +149,6 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Error swapping days:", error)
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
-    })
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
