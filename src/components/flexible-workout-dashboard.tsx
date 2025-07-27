@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { signOut } from "next-auth/react"
-import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw } from "lucide-react"
+import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Trophy } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -338,6 +338,13 @@ export function FlexibleWorkoutDashboard() {
             </div>
             
             <div className="flex items-center space-x-1 sm:space-x-2">
+              <Link href="/leaderboard">
+                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2">
+                  <Trophy className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-2">Leaderboard</span>
+                </Button>
+              </Link>
+
               <Link href="/history">
                 <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2">
                   <History className="h-4 w-4" />
