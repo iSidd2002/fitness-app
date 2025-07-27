@@ -13,9 +13,20 @@ const swapDaysSchema = z.object({
 // POST /api/schedule/swap-days - Swap workout schedules between two days
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== SWAP DAYS API START ===")
+    console.log("Environment:", process.env.NODE_ENV)
+    console.log("NEXTAUTH_URL:", process.env.NEXTAUTH_URL)
+
     const session = await getServerSession(authOptions)
+    console.log("Session result:", {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      userRole: session?.user?.role
+    })
 
     if (!session?.user?.id) {
+      console.log("No session or user ID - returning 401")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -28,6 +39,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get both day schedules
+    console.log("Fetching schedules for days:", validatedData.fromDay, "and", validatedData.toDay)
+
     const [fromDaySchedule, toDaySchedule] = await Promise.all([
       prisma.weeklySchedule.findUnique({
         where: { dayOfWeek: validatedData.fromDay },
@@ -48,6 +61,13 @@ export async function POST(request: NextRequest) {
         }
       })
     ])
+
+    console.log("Schedule fetch results:", {
+      fromDayFound: !!fromDaySchedule,
+      toDayFound: !!toDaySchedule,
+      fromDayId: fromDaySchedule?.id,
+      toDayId: toDaySchedule?.id
+    })
 
     // Check if we need to create missing schedules
     let actualFromDaySchedule = fromDaySchedule
@@ -86,10 +106,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform the swap in a transaction
+    console.log("Starting transaction...")
     await prisma.$transaction(async (tx) => {
+      console.log("Inside transaction")
       // Get all exercises from both days
       const fromDayExercises = actualFromDaySchedule.exercises
       const toDayExercises = actualToDaySchedule.exercises
+
+      console.log("Exercise counts:", {
+        fromDayExercises: fromDayExercises.length,
+        toDayExercises: toDayExercises.length
+      })
 
       // Delete all existing schedule exercises for both days
       await tx.scheduleExercise.deleteMany({
@@ -135,7 +162,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-
+    console.log("Transaction completed successfully")
 
     return NextResponse.json({
       message: "Days swapped successfully",
@@ -149,6 +176,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Error swapping days:", error)
+    console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace')
+    console.error("Error name:", error instanceof Error ? error.name : 'Unknown')
+    console.error("Error cause:", error instanceof Error ? error.cause : 'No cause')
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -160,7 +190,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Failed to swap days",
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        name: error instanceof Error ? error.name : undefined
       },
       { status: 500 }
     )
