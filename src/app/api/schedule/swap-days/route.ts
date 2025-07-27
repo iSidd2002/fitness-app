@@ -25,20 +25,18 @@ export async function POST(request: NextRequest) {
       userRole: session?.user?.role
     })
 
-    // TEMPORARY: Skip auth check for debugging
-    // if (!session?.user?.id) {
-    //   console.log("No session or user ID - returning 401")
-    //   return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    // }
+    if (!session?.user?.id) {
+      console.log("No session or user ID - returning 401")
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
 
     const body = await request.json()
     const validatedData = swapDaysSchema.parse(body)
 
-    // TEMPORARY: Skip user verification for debugging
     // Verify the user is swapping their own schedule or is an admin
-    // if (validatedData.userId !== session.user.id && session.user.role !== "ADMIN") {
-    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    // }
+    if (validatedData.userId !== session.user.id && session.user.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
 
     // Get both day schedules
     console.log("Fetching schedules for days:", validatedData.fromDay, "and", validatedData.toDay)
@@ -107,7 +105,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Perform the swap in a transaction
+    // Perform the swap in a transaction with increased timeout
     console.log("Starting transaction...")
     await prisma.$transaction(async (tx) => {
       console.log("Inside transaction")
@@ -140,28 +138,30 @@ export async function POST(request: NextRequest) {
         data: { name: actualFromDaySchedule.name }
       })
 
-      // Create new schedule exercises with swapped assignments
-      // Move fromDay exercises to toDay
-      for (const exercise of fromDayExercises) {
-        await tx.scheduleExercise.create({
-          data: {
-            scheduleId: actualToDaySchedule.id,
-            exerciseId: exercise.exerciseId,
-            order: exercise.order
-          }
-        })
-      }
+      // Batch create new schedule exercises for better performance
+      const newExercises = [
+        // Move fromDay exercises to toDay
+        ...fromDayExercises.map(exercise => ({
+          scheduleId: actualToDaySchedule.id,
+          exerciseId: exercise.exerciseId,
+          order: exercise.order
+        })),
+        // Move toDay exercises to fromDay
+        ...toDayExercises.map(exercise => ({
+          scheduleId: actualFromDaySchedule.id,
+          exerciseId: exercise.exerciseId,
+          order: exercise.order
+        }))
+      ]
 
-      // Move toDay exercises to fromDay
-      for (const exercise of toDayExercises) {
-        await tx.scheduleExercise.create({
-          data: {
-            scheduleId: actualFromDaySchedule.id,
-            exerciseId: exercise.exerciseId,
-            order: exercise.order
-          }
+      // Use createMany for better performance
+      if (newExercises.length > 0) {
+        await tx.scheduleExercise.createMany({
+          data: newExercises
         })
       }
+    }, {
+      timeout: 15000 // Increase timeout to 15 seconds
     })
 
     console.log("Transaction completed successfully")
