@@ -232,6 +232,15 @@ export function FlexibleWorkoutDashboard() {
 
   const handleConfirmDaySwap = async () => {
     setSwapLoading(true)
+
+    console.log("Day swap request:", {
+      fromDay: selectedDay,
+      toDay: today,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      sessionExists: !!session
+    })
+
     try {
       const response = await fetch("/api/schedule/swap-days", {
         method: "POST",
@@ -245,8 +254,11 @@ export function FlexibleWorkoutDashboard() {
 
       const result = await response.json()
 
+      console.log("Swap response:", { status: response.status, result })
+
       if (!response.ok) {
-        throw new Error(result.error || "Failed to swap days")
+        console.error("Swap failed:", result)
+        throw new Error(result.error || result.details || "Failed to swap days")
       }
 
       // Update local state

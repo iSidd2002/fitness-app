@@ -20,12 +20,17 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log("Swap request body:", body)
+
     const validatedData = swapDaysSchema.parse(body)
+    console.log("Validated data:", validatedData)
 
     // Verify the user is swapping their own schedule or is an admin
     if (validatedData.userId !== session.user.id && session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
+
+    console.log(`Looking for schedules: fromDay=${validatedData.fromDay}, toDay=${validatedData.toDay}`)
 
     // Get both day schedules
     const [fromDaySchedule, toDaySchedule] = await Promise.all([
@@ -49,9 +54,23 @@ export async function POST(request: NextRequest) {
       })
     ])
 
+    console.log("Schedule lookup results:", {
+      fromDaySchedule: fromDaySchedule ? { id: fromDaySchedule.id, name: fromDaySchedule.name, exerciseCount: fromDaySchedule.exercises.length } : null,
+      toDaySchedule: toDaySchedule ? { id: toDaySchedule.id, name: toDaySchedule.name, exerciseCount: toDaySchedule.exercises.length } : null
+    })
+
     if (!fromDaySchedule || !toDaySchedule) {
+      console.error("Missing schedules:", { fromDaySchedule: !!fromDaySchedule, toDaySchedule: !!toDaySchedule })
       return NextResponse.json(
-        { error: "One or both day schedules not found" },
+        {
+          error: "One or both day schedules not found",
+          details: {
+            fromDayFound: !!fromDaySchedule,
+            toDayFound: !!toDaySchedule,
+            fromDay: validatedData.fromDay,
+            toDay: validatedData.toDay
+          }
+        },
         { status: 404 }
       )
     }
@@ -121,7 +140,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Error swapping days:", error)
-    
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    })
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: "Invalid request data", details: error.issues },
@@ -130,7 +153,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "Failed to swap days" },
+      {
+        error: "Failed to swap days",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }
