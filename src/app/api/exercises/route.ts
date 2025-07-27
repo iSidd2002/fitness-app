@@ -22,16 +22,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Fetch both global exercises (userId is null) and user's custom exercises
-    const exercises = await prisma.exercise.findMany({
-      where: {
-        OR: [
-          { userId: null }, // Global exercises
-          { userId: session.user.id }, // User's custom exercises
-        ]
-      },
+    // Fetch both global exercises and user's custom exercises
+    const allExercises = await prisma.exercise.findMany({
       orderBy: [
-        { userId: 'asc' }, // Global exercises first (null values come first)
         { name: 'asc' }
       ],
       include: {
@@ -42,6 +35,11 @@ export async function GET() {
         }
       }
     })
+
+    // Filter for global exercises (no userId) and user's custom exercises
+    const exercises = allExercises.filter(exercise =>
+      !exercise.userId || exercise.userId === session.user.id
+    )
 
     return NextResponse.json({ exercises })
   } catch (error) {

@@ -12,16 +12,16 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Fetch global exercises (userId is null)
-    const exercises = await prisma.exercise.findMany({
-      where: {
-        userId: null // Global exercises only
-      },
+    // Fetch global exercises (no userId field or userId is null)
+    const allExercises = await prisma.exercise.findMany({
       orderBy: [
         { muscleGroup: 'asc' },
         { name: 'asc' }
       ]
     })
+
+    // Filter for global exercises (those without a userId)
+    const exercises = allExercises.filter(exercise => !exercise.userId)
 
     return NextResponse.json({ exercises })
   } catch (error) {

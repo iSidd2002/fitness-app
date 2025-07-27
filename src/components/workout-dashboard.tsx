@@ -199,7 +199,7 @@ export function WorkoutDashboard() {
                   <div className="flex items-start space-x-3">
                     <Checkbox
                       checked={selectedExercises.has(exercise.id)}
-                      onChange={() => handleExerciseToggle(exercise.id)}
+                      onCheckedChange={() => handleExerciseToggle(exercise.id)}
                       className="mt-1"
                     />
                     

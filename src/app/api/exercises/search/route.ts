@@ -60,17 +60,9 @@ export async function GET(request: NextRequest) {
     }))
 
     // Fetch exercises with fuzzy search
-    const exercises = await prisma.exercise.findMany({
+    const allExercises = await prisma.exercise.findMany({
       where: {
-        AND: [
-          {
-            OR: [
-              { userId: null }, // Global exercises
-              { userId: session.user.id } // User's custom exercises
-            ]
-          },
-          ...searchConditions
-        ]
+        AND: searchConditions
       },
       orderBy: [
         // Prioritize exact name matches
@@ -78,7 +70,6 @@ export async function GET(request: NextRequest) {
           name: 'asc'
         }
       ],
-      take: limit,
       include: {
         user: {
           select: {
@@ -87,6 +78,11 @@ export async function GET(request: NextRequest) {
         }
       }
     })
+
+    // Filter for global exercises (no userId) and user's custom exercises
+    const exercises = allExercises
+      .filter(exercise => !exercise.userId || exercise.userId === session.user.id)
+      .slice(0, limit)
 
     // Calculate relevance scores and sort by relevance
     const exercisesWithScores = exercises.map(exercise => {

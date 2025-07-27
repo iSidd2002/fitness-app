@@ -6,7 +6,7 @@ import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd"
-import { Search, Plus, Trash2, GripVertical, Settings, ArrowLeft, Save } from "lucide-react"
+import { Search, Plus, Trash2, GripVertical, Settings, ArrowLeft, Save, Calendar, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -17,12 +17,17 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ExerciseAutoSuggest } from "@/components/exercise-auto-suggest"
 import { AuthGuard } from "@/components/auth-guard"
+import { ImportExercisesDialog } from "@/components/import-exercises-dialog"
+import { AdminCreateExerciseDialog } from "@/components/admin-create-exercise-dialog"
 
 interface Exercise {
   id: string
   name: string
   muscleGroup: string
   equipment: string
+  description?: string
+  videoUrl?: string
+  userId?: string
 }
 
 interface ScheduleExercise {
@@ -61,6 +66,7 @@ function AdminSchedulePageContent() {
   const [exerciseAutoSearch, setExerciseAutoSearch] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [initializing, setInitializing] = useState(false)
 
   useEffect(() => {
     if (session) {
@@ -220,6 +226,40 @@ function AdminSchedulePageContent() {
     }
   }
 
+  const handleExerciseCreated = (newExercise: Exercise) => {
+    // Add the new exercise to the exercises list
+    setExercises(prev => [...prev, newExercise])
+    setFilteredExercises(prev => [...prev, newExercise])
+
+    // Refresh the schedule data in case the exercise was assigned to days
+    fetchData()
+
+    toast.success("Global exercise created and added to database!")
+  }
+
+  const handleInitializeSchedule = async () => {
+    setInitializing(true)
+    try {
+      const response = await fetch("/api/admin/schedule/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" }
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to initialize schedule")
+      }
+
+      toast.success("Weekly schedule initialized successfully!")
+      fetchData() // Refresh the data
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to initialize schedule")
+    } finally {
+      setInitializing(false)
+    }
+  }
+
   const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return
 
@@ -300,12 +340,20 @@ function AdminSchedulePageContent() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Weekly Workout Schedule
-          </h2>
-          <p className="text-gray-600 mb-4">
-            Manage exercises for each day of the week. Changes will immediately affect all users.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Weekly Workout Schedule
+              </h2>
+              <p className="text-gray-600">
+                Manage exercises for each day of the week. Changes will immediately affect all users.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <AdminCreateExerciseDialog onExerciseCreated={handleExerciseCreated} />
+              <ImportExercisesDialog onImportComplete={fetchData} />
+            </div>
+          </div>
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -429,11 +477,24 @@ function AdminSchedulePageContent() {
                       <SelectContent className="max-h-60">
                         {filteredExercises.map((exercise) => (
                           <SelectItem key={exercise.id} value={exercise.id}>
-                            <div className="flex flex-col">
-                              <span className="font-medium">{exercise.name}</span>
-                              <span className="text-xs text-gray-500">
-                                {exercise.muscleGroup} • {exercise.equipment}
-                              </span>
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{exercise.name}</span>
+                                  {!exercise.userId ? (
+                                    <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
+                                      Global
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs">
+                                      Custom
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {exercise.muscleGroup} • {exercise.equipment}
+                                </span>
+                              </div>
                             </div>
                           </SelectItem>
                         ))}
@@ -476,7 +537,37 @@ function AdminSchedulePageContent() {
             </Badge>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {schedule.length === 0 ? (
+            <Card className="p-8 text-center">
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-gray-500">
+                    <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Weekly Schedule Found</h3>
+                    <p className="text-sm">Initialize the weekly schedule to start managing exercises for each day.</p>
+                  </div>
+                  <Button
+                    onClick={handleInitializeSchedule}
+                    disabled={initializing}
+                    className="gap-2"
+                  >
+                    {initializing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Initializing...
+                      </>
+                    ) : (
+                      <>
+                        <Calendar className="h-4 w-4" />
+                        Initialize Weekly Schedule
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
             {daysOfWeek.map((day) => {
               const daySchedule = schedule.find(s => s.dayOfWeek === day.value)
               const exerciseCount = daySchedule?.exercises.length || 0
@@ -574,7 +665,8 @@ function AdminSchedulePageContent() {
                 </Card>
               )
             })}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Help Section */}

@@ -235,8 +235,10 @@ export function ExerciseReplacementDialog({
                             <div className="flex-1">
                               <div className="flex items-center space-x-2 mb-2">
                                 <h4 className="font-medium">{exercise.name}</h4>
-                                {exercise.userId && (
-                                  <Badge variant="secondary" className="text-xs">Custom</Badge>
+                                {!exercise.userId ? (
+                                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">Global</Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-xs text-green-600 border-green-300">Custom</Badge>
                                 )}
                                 {isSameMuscleGroup && isSameEquipment && (
                                   <Badge className="text-xs bg-green-600">Perfect Match</Badge>
@@ -298,8 +300,10 @@ export function ExerciseReplacementDialog({
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 mb-2">
                               <h4 className="font-medium">{exercise.name}</h4>
-                              {exercise.userId && (
-                                <Badge variant="secondary" className="text-xs">Custom</Badge>
+                              {!exercise.userId ? (
+                                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">Global</Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-xs text-green-600 border-green-300">Custom</Badge>
                               )}
                             </div>
                             {exercise.description && (
