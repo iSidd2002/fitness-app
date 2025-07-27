@@ -6,8 +6,8 @@ export default withAuth(
     const { pathname } = req.nextUrl
     const token = req.nextauth.token
 
-    // Allow access to login page and auth-related routes
-    if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
+    // Allow access to login, signup pages and auth-related routes
+    if (pathname.startsWith("/login") || pathname.startsWith("/signup") || pathname.startsWith("/api/auth") || pathname.startsWith("/api/register")) {
       return NextResponse.next()
     }
 
@@ -36,8 +36,8 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl
 
-        // Always allow access to login and auth routes
-        if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
+        // Always allow access to login, signup and auth routes
+        if (pathname.startsWith("/login") || pathname.startsWith("/signup") || pathname.startsWith("/api/auth") || pathname.startsWith("/api/register")) {
           return true
         }
 
