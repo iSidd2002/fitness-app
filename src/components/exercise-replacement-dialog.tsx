@@ -125,7 +125,7 @@ export function ExerciseReplacementDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[600px] max-h-[90vh] overflow-y-auto mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <RefreshCw className="h-5 w-5" />

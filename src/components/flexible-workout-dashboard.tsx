@@ -323,19 +323,22 @@ export function FlexibleWorkoutDashboard() {
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <Dumbbell className="h-8 w-8 text-blue-600" />
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Siddhant&apos;s Workout Plan</h1>
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
+              <Dumbbell className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
+                  <span className="hidden sm:inline">Siddhant&apos;s Workout Plan</span>
+                  <span className="sm:hidden">Workout Plan</span>
+                </h1>
                 <p className="text-xs text-gray-500">
                   {selectedDay === today ? "Today" : daysOfWeek[selectedDay]}
                 </p>
               </div>
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <Link href="/history">
-                <Button variant="ghost" size="sm" className="p-2">
+                <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2">
                   <History className="h-4 w-4" />
                   <span className="hidden sm:inline ml-2">History</span>
                 </Button>
@@ -343,7 +346,7 @@ export function FlexibleWorkoutDashboard() {
 
               {session?.user?.role === "ADMIN" && (
                 <Link href="/admin/schedule">
-                  <Button variant="ghost" size="sm" className="p-2 text-blue-600 hover:text-blue-700">
+                  <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 text-blue-600 hover:text-blue-700">
                     <Settings className="h-4 w-4" />
                     <span className="hidden sm:inline ml-2">Admin</span>
                   </Button>
@@ -357,7 +360,7 @@ export function FlexibleWorkoutDashboard() {
                 variant="ghost"
                 size="sm"
                 onClick={() => signOut()}
-                className="p-2"
+                className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2"
               >
                 <LogOut className="h-4 w-4" />
                 <span className="hidden sm:inline ml-2">Sign Out</span>
@@ -534,12 +537,12 @@ export function FlexibleWorkoutDashboard() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-1 sm:space-x-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleReplaceExercise(exerciseIndex)}
-                          className="text-blue-600 hover:text-blue-700"
+                          className="text-blue-600 hover:text-blue-700 h-10 w-10 sm:h-8 sm:w-8 p-0"
                         >
                           <Settings className="h-4 w-4" />
                         </Button>
@@ -547,7 +550,7 @@ export function FlexibleWorkoutDashboard() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveExercise(exerciseIndex)}
-                          className="text-red-600 hover:text-red-700"
+                          className="text-red-600 hover:text-red-700 h-10 w-10 sm:h-8 sm:w-8 p-0"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -557,48 +560,89 @@ export function FlexibleWorkoutDashboard() {
                   
                   <CardContent>
                     {/* Sets */}
-                    <div className="space-y-2">
-                      <div className="grid grid-cols-4 gap-2 text-sm font-medium text-gray-700 mb-2">
+                    <div className="space-y-3">
+                      {/* Desktop Header */}
+                      <div className="hidden sm:grid grid-cols-4 gap-2 text-sm font-medium text-gray-700 mb-2">
                         <span>Set</span>
                         <span>Reps</span>
                         <span>Weight (kg)</span>
                         <span></span>
                       </div>
-                      
+
                       {workoutExercise.sets.map((set, setIndex) => (
-                        <div key={setIndex} className="grid grid-cols-4 gap-2 items-center">
-                          <span className="text-sm text-gray-600">{set.setNumber}</span>
-                          <Input
-                            type="number"
-                            placeholder="0"
-                            value={set.reps || ''}
-                            onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-                            className="h-8"
-                          />
-                          <Input
-                            type="number"
-                            step="0.5"
-                            placeholder="0"
-                            value={set.weightKg || ''}
-                            onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weightKg', parseFloat(e.target.value) || 0)}
-                            className="h-8"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
+                        <div key={setIndex}>
+                          {/* Desktop Layout */}
+                          <div className="hidden sm:grid grid-cols-4 gap-2 items-center">
+                            <span className="text-sm text-gray-600">{set.setNumber}</span>
+                            <Input
+                              type="number"
+                              placeholder="0"
+                              value={set.reps || ''}
+                              onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+                              className="h-10"
+                            />
+                            <Input
+                              type="number"
+                              step="0.5"
+                              placeholder="0"
+                              value={set.weightKg || ''}
+                              onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weightKg', parseFloat(e.target.value) || 0)}
+                              className="h-10"
+                            />
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
+                              className="h-10 w-10 p-0 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Mobile Layout */}
+                          <div className="sm:hidden bg-gray-50 rounded-lg p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-medium text-gray-700">Set {set.setNumber}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="text-xs font-medium text-gray-600 block mb-1">Reps</label>
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={set.reps || ''}
+                                  onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
+                                  className="h-12 text-center text-lg"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-xs font-medium text-gray-600 block mb-1">Weight (kg)</label>
+                                <Input
+                                  type="number"
+                                  step="0.5"
+                                  placeholder="0"
+                                  value={set.weightKg || ''}
+                                  onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weightKg', parseFloat(e.target.value) || 0)}
+                                  className="h-12 text-center text-lg"
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       ))}
                       
                       <Button
                         variant="outline"
-                        size="sm"
                         onClick={() => handleAddSet(exerciseIndex)}
-                        className="w-full mt-2"
+                        className="w-full mt-3 h-12 sm:h-10 font-medium"
                       >
                         <Plus className="h-4 w-4 mr-2" />
                         Add Set

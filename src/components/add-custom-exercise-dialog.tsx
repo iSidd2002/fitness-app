@@ -171,7 +171,7 @@ export function AddCustomExerciseDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto mx-auto">
         <DialogHeader>
           <DialogTitle>Add Exercise to Today&apos;s Workout</DialogTitle>
           <DialogDescription>
