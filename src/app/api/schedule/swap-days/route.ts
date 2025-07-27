@@ -54,51 +54,78 @@ export async function POST(request: NextRequest) {
       })
     ])
 
-    console.log("Schedule lookup results:", {
-      fromDaySchedule: fromDaySchedule ? { id: fromDaySchedule.id, name: fromDaySchedule.name, exerciseCount: fromDaySchedule.exercises.length } : null,
-      toDaySchedule: toDaySchedule ? { id: toDaySchedule.id, name: toDaySchedule.name, exerciseCount: toDaySchedule.exercises.length } : null
-    })
+    // Check if we need to create missing schedules
+    let actualFromDaySchedule = fromDaySchedule
+    let actualToDaySchedule = toDaySchedule
 
-    if (!fromDaySchedule || !toDaySchedule) {
-      console.error("Missing schedules:", { fromDaySchedule: !!fromDaySchedule, toDaySchedule: !!toDaySchedule })
-      return NextResponse.json(
-        {
-          error: "One or both day schedules not found",
-          details: {
-            fromDayFound: !!fromDaySchedule,
-            toDayFound: !!toDaySchedule,
-            fromDay: validatedData.fromDay,
-            toDay: validatedData.toDay
-          }
+    if (!actualFromDaySchedule) {
+      console.log(`Creating missing schedule for day ${validatedData.fromDay}`)
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+      actualFromDaySchedule = await prisma.weeklySchedule.create({
+        data: {
+          dayOfWeek: validatedData.fromDay,
+          name: dayNames[validatedData.fromDay]
         },
-        { status: 404 }
-      )
+        include: {
+          exercises: {
+            include: { exercise: true },
+            orderBy: { order: 'asc' }
+          }
+        }
+      })
     }
+
+    if (!actualToDaySchedule) {
+      console.log(`Creating missing schedule for day ${validatedData.toDay}`)
+      const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+      actualToDaySchedule = await prisma.weeklySchedule.create({
+        data: {
+          dayOfWeek: validatedData.toDay,
+          name: dayNames[validatedData.toDay]
+        },
+        include: {
+          exercises: {
+            include: { exercise: true },
+            orderBy: { order: 'asc' }
+          }
+        }
+      })
+    }
+
+    console.log("Schedule lookup results:", {
+      fromDaySchedule: actualFromDaySchedule ? { id: actualFromDaySchedule.id, name: actualFromDaySchedule.name, exerciseCount: actualFromDaySchedule.exercises.length } : null,
+      toDaySchedule: actualToDaySchedule ? { id: actualToDaySchedule.id, name: actualToDaySchedule.name, exerciseCount: actualToDaySchedule.exercises.length } : null
+    })
 
     // Perform the swap in a transaction
     await prisma.$transaction(async (tx) => {
       // Get all exercises from both days
-      const fromDayExercises = fromDaySchedule.exercises
-      const toDayExercises = toDaySchedule.exercises
+      const fromDayExercises = actualFromDaySchedule.exercises
+      const toDayExercises = actualToDaySchedule.exercises
+
+      console.log("Swapping exercises:", {
+        fromDayExercises: fromDayExercises.length,
+        toDayExercises: toDayExercises.length
+      })
 
       // Delete all existing schedule exercises for both days
       await tx.scheduleExercise.deleteMany({
         where: {
           scheduleId: {
-            in: [fromDaySchedule.id, toDaySchedule.id]
+            in: [actualFromDaySchedule.id, actualToDaySchedule.id]
           }
         }
       })
 
       // Swap the workout names
       await tx.weeklySchedule.update({
-        where: { id: fromDaySchedule.id },
-        data: { name: toDaySchedule.name }
+        where: { id: actualFromDaySchedule.id },
+        data: { name: actualToDaySchedule.name }
       })
 
       await tx.weeklySchedule.update({
-        where: { id: toDaySchedule.id },
-        data: { name: fromDaySchedule.name }
+        where: { id: actualToDaySchedule.id },
+        data: { name: actualFromDaySchedule.name }
       })
 
       // Create new schedule exercises with swapped assignments
@@ -106,7 +133,7 @@ export async function POST(request: NextRequest) {
       for (const exercise of fromDayExercises) {
         await tx.scheduleExercise.create({
           data: {
-            scheduleId: toDaySchedule.id,
+            scheduleId: actualToDaySchedule.id,
             exerciseId: exercise.exerciseId,
             order: exercise.order
           }
@@ -117,7 +144,7 @@ export async function POST(request: NextRequest) {
       for (const exercise of toDayExercises) {
         await tx.scheduleExercise.create({
           data: {
-            scheduleId: fromDaySchedule.id,
+            scheduleId: actualFromDaySchedule.id,
             exerciseId: exercise.exerciseId,
             order: exercise.order
           }
@@ -133,8 +160,8 @@ export async function POST(request: NextRequest) {
       swappedDays: {
         fromDay: validatedData.fromDay,
         toDay: validatedData.toDay,
-        fromDayName: toDaySchedule.name, // Now assigned to fromDay
-        toDayName: fromDaySchedule.name   // Now assigned to toDay
+        fromDayName: actualToDaySchedule.name, // Now assigned to fromDay
+        toDayName: actualFromDaySchedule.name   // Now assigned to toDay
       }
     })
 
