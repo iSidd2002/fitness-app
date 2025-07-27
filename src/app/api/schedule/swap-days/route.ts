@@ -13,9 +13,18 @@ const swapDaysSchema = z.object({
 // POST /api/schedule/swap-days - Swap workout schedules between two days
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== SWAP DAYS API CALLED ===")
+
     const session = await getServerSession(authOptions)
-    
+    console.log("Session check:", {
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      userEmail: session?.user?.email
+    })
+
     if (!session?.user?.id) {
+      console.log("No session or user ID, returning 401")
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
@@ -26,8 +35,24 @@ export async function POST(request: NextRequest) {
     console.log("Validated data:", validatedData)
 
     // Verify the user is swapping their own schedule or is an admin
+    console.log("User verification:", {
+      requestUserId: validatedData.userId,
+      sessionUserId: session.user.id,
+      userRole: session.user.role,
+      isMatch: validatedData.userId === session.user.id,
+      isAdmin: session.user.role === "ADMIN"
+    })
+
     if (validatedData.userId !== session.user.id && session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      console.log("User verification failed - forbidden")
+      return NextResponse.json({
+        error: "Forbidden",
+        details: {
+          requestUserId: validatedData.userId,
+          sessionUserId: session.user.id,
+          userRole: session.user.role
+        }
+      }, { status: 403 })
     }
 
     console.log(`Looking for schedules: fromDay=${validatedData.fromDay}, toDay=${validatedData.toDay}`)

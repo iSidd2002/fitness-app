@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Day Swap</title>
+</head>
+<body>
+    <h1>Test Day Swap Functionality</h1>
+    <button onclick="testSwap()">Test Swap Days</button>
+    <div id="result"></div>
+
+    <script>
+        async function testSwap() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing...';
+            
+            try {
+                console.log('Starting swap test...');
+                
+                const response = await fetch('/api/schedule/swap-days', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        fromDay: 1, // Monday
+                        toDay: 0,   // Sunday
+                        userId: 'test-user-id'
+                    })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const result = await response.json();
+                console.log('Response body:', result);
+                
+                resultDiv.innerHTML = `
+                    <h3>Response:</h3>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(result, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('Test error:', error);
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
