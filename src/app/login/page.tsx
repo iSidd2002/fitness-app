@@ -65,9 +65,9 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in to IncelFitness</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Sign in to Siddhant's Workout Plan</CardTitle>
           <CardDescription className="text-center">
-            Enter your email and password to access your fitness journey
+            Enter your email and password to access Siddhant's workout plan for becoming gymcel
           </CardDescription>
         </CardHeader>
         <CardContent>

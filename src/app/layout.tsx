@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "IncelFitness - Your Fitness Journey",
-  description: "Track your workouts and achieve your fitness goals",
+  title: "Siddhant's Workout Plan for Becoming Gymcel",
+  description: "Siddhant's workout plan for becoming gymcel",
 };
 
 export default function RootLayout({
