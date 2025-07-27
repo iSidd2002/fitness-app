@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { signOut } from "next-auth/react"
-import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Play } from "lucide-react"
+import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge"
 import { AddCustomExerciseDialog } from "@/components/add-custom-exercise-dialog"
 import { ExerciseReplacementDialog } from "@/components/exercise-replacement-dialog"
 import { DayNavigation } from "@/components/day-navigation"
+import { DaySwapConfirmationDialog } from "@/components/day-swap-confirmation-dialog"
+import { WorkoutStatusIndicator } from "@/components/workout-status-indicator"
 import { useAuthGuard } from "@/components/auth-guard"
 
 interface Exercise {
@@ -71,6 +73,9 @@ export function FlexibleWorkoutDashboard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [dayLoading, setDayLoading] = useState(false)
+  const [workoutStarted, setWorkoutStarted] = useState(false)
+  const [showSwapDialog, setShowSwapDialog] = useState(false)
+  const [swapLoading, setSwapLoading] = useState(false)
 
   const today = new Date().getDay()
 
@@ -129,6 +134,7 @@ export function FlexibleWorkoutDashboard() {
 
   const handleDaySelect = (dayOfWeek: number) => {
     setSelectedDay(dayOfWeek)
+    setWorkoutStarted(false) // Reset workout status when switching days
   }
 
   const handleAddSet = (exerciseIndex: number) => {
@@ -212,9 +218,57 @@ export function FlexibleWorkoutDashboard() {
       toast.error("No exercises available for this day. Add some exercises to get started!")
       return
     }
-    
+
+    // Check if we need to swap days (starting a different day's workout)
+    if (selectedDay !== today) {
+      setShowSwapDialog(true)
+      return
+    }
+
+    // Starting today's workout - no swap needed
+    setWorkoutStarted(true)
     toast.success(`Starting ${currentDaySchedule?.name || daysOfWeek[selectedDay]} workout! 💪`)
-    // The workout interface is already displayed, user can start logging sets
+  }
+
+  const handleConfirmDaySwap = async () => {
+    setSwapLoading(true)
+    try {
+      const response = await fetch("/api/schedule/swap-days", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromDay: selectedDay,
+          toDay: today,
+          userId: session?.user?.id
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to swap days")
+      }
+
+      // Update local state
+      setWorkoutStarted(true)
+      setShowSwapDialog(false)
+
+      // Refresh the weekly schedule and current day
+      await Promise.all([
+        fetchWeeklySchedule(),
+        fetchDaySchedule(selectedDay)
+      ])
+
+      toast.success(
+        `Days swapped! ${daysOfWeek[today]} is now ${result.swappedDays.fromDayName} and ${daysOfWeek[selectedDay]} is now ${result.swappedDays.toDayName}. Starting workout! 💪`
+      )
+
+    } catch (error) {
+      console.error("Error swapping days:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to swap workout days")
+    } finally {
+      setSwapLoading(false)
+    }
   }
 
   const handleSaveWorkout = async () => {
@@ -325,28 +379,31 @@ export function FlexibleWorkoutDashboard() {
 
         {/* Current Day Header */}
         <div className="mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
                 {currentDaySchedule?.name || `${daysOfWeek[selectedDay]} Workout`}
               </h2>
               <p className="text-gray-600">
-                {selectedDay === today 
+                {selectedDay === today
                   ? "Complete your scheduled exercises and add your own if needed"
                   : "Preview or start this day's workout"
                 }
               </p>
             </div>
-            
-            {workoutExercises.length > 0 && (
-              <Button
-                onClick={handleStartWorkout}
-                className="bg-green-600 hover:bg-green-700 gap-2"
-              >
-                <Play className="h-4 w-4" />
-                Start Workout
-              </Button>
-            )}
+
+            {/* Workout Status Indicator */}
+            <WorkoutStatusIndicator
+              status={workoutStarted ? "in_progress" : "not_started"}
+              onStartWorkout={handleStartWorkout}
+              workoutName={currentDaySchedule?.name}
+              exerciseCount={workoutExercises.length}
+              completedSets={workoutExercises.reduce((total, ex) =>
+                total + ex.sets.filter(set => set.reps > 0 && set.weightKg > 0).length, 0
+              )}
+              totalSets={workoutExercises.reduce((total, ex) => total + ex.sets.length, 0)}
+              disabled={dayLoading || swapLoading}
+            />
           </div>
         </div>
 
@@ -570,6 +627,18 @@ export function FlexibleWorkoutDashboard() {
           onExerciseReplaced={handleExerciseReplaced}
         />
       )}
+
+      {/* Day Swap Confirmation Dialog */}
+      <DaySwapConfirmationDialog
+        open={showSwapDialog}
+        onOpenChange={setShowSwapDialog}
+        fromDay={selectedDay}
+        toDay={today}
+        fromDayName={currentDaySchedule?.name || daysOfWeek[selectedDay]}
+        toDayName={weeklySchedule.find(s => s.dayOfWeek === today)?.name || daysOfWeek[today]}
+        onConfirm={handleConfirmDaySwap}
+        loading={swapLoading}
+      />
     </div>
   )
 }
