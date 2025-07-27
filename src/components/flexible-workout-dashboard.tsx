@@ -326,7 +326,7 @@ export function FlexibleWorkoutDashboard() {
             <div className="flex items-center space-x-2">
               <Dumbbell className="h-8 w-8 text-blue-600" />
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Siddhant's Workout Plan</h1>
+                <h1 className="text-xl font-bold text-gray-900">Siddhant&apos;s Workout Plan</h1>
                 <p className="text-xs text-gray-500">
                   {selectedDay === today ? "Today" : daysOfWeek[selectedDay]}
                 </p>

@@ -110,7 +110,7 @@ export function WorkoutDashboard() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <Dumbbell className="h-8 w-8 text-blue-600" />
-              <h1 className="text-xl font-bold text-gray-900">Siddhant's Workout Plan</h1>
+              <h1 className="text-xl font-bold text-gray-900">Siddhant&apos;s Workout Plan</h1>
             </div>
             
             <div className="flex items-center space-x-2">
