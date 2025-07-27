@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  role          Role      @default(USER)
+
+  accounts         Account[]
+  sessions         Session[]
+  workoutLogs      WorkoutLog[]
+  exercises        Exercise[]  // Custom exercises created by the user
+  deletedExercises Exercise[] @relation("DeletedExercises")  // Exercises deleted by this admin
+  changeLogs       ExerciseChangeLog[]  // Exercise changes made by this user
+}
+
+model Exercise {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  name             String   @unique
+  description      String?
+  muscleGroup      String
+  equipment        String
+  videoUrl         String?
+  userId           String?  @db.ObjectId  // null for global exercises, userId for custom exercises
+
+  // Soft delete fields
+  isDeleted        Boolean   @default(false)
+  deletedAt        DateTime?
+  deletedBy        String?   @db.ObjectId
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deletedByUser    User?    @relation("DeletedExercises", fields: [deletedBy], references: [id])
+
+  scheduleExercises    ScheduleExercise[]
+  originalWorkouts     WorkoutExercise[] @relation("OriginalExercise")
+  replacementWorkouts  WorkoutExercise[] @relation("ReplacementExercise")
+  changeLogs           ExerciseChangeLog[]
+}
+
+// Admin-defined weekly schedule
+model WeeklySchedule {
+  id        String             @id @default(auto()) @map("_id") @db.ObjectId
+  dayOfWeek Int                // 0 = Sunday, 1 = Monday, etc.
+  name      String             // e.g., "Push Day", "Pull Day", "Leg Day"
+  exercises ScheduleExercise[]
+
+  @@unique([dayOfWeek])
+}
+
+model ScheduleExercise {
+  id         String         @id @default(auto()) @map("_id") @db.ObjectId
+  scheduleId String         @db.ObjectId
+  exerciseId String         @db.ObjectId
+  order      Int            // Order of exercise in the day
+
+  schedule   WeeklySchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  exercise   Exercise       @relation(fields: [exerciseId], references: [id])
+
+  @@unique([scheduleId, order])
+}
+
+// User's workout logs
+model WorkoutLog {
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  date             DateTime          @default(now())
+  dayOfWeek        Int               // Which day of the week this workout was for
+  userId           String            @db.ObjectId
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  workoutExercises WorkoutExercise[]
+}
+
+model WorkoutExercise {
+  id                   String        @id @default(auto()) @map("_id") @db.ObjectId
+  workoutLogId         String        @db.ObjectId
+
+  // Original exercise reference (for admin exercises)
+  originalExerciseId   String?       @db.ObjectId
+
+  // Replacement exercise reference (if replaced)
+  replacementExerciseId String?      @db.ObjectId
+
+  // SNAPSHOT: Exercise data at time of workout (immutable)
+  exerciseSnapshot     Json?         // Stores complete exercise data
+
+  // Metadata
+  isCustom             Boolean       @default(false)
+  isReplaced           Boolean       @default(false)
+  replacedAt           DateTime?
+  order                Int           // Order in the workout
+
+  workoutLog           WorkoutLog    @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  originalExercise     Exercise?     @relation("OriginalExercise", fields: [originalExerciseId], references: [id])
+  replacementExercise  Exercise?     @relation("ReplacementExercise", fields: [replacementExerciseId], references: [id])
+  sets                 ExerciseSet[]
+}
+
+model ExerciseSet {
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  workoutExerciseId String          @db.ObjectId
+  setNumber         Int
+  reps              Int
+  weightKg          Float
+
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+}
+
+// Exercise change audit log
+model ExerciseChangeLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  exerciseId  String   @db.ObjectId
+  changedBy   String   @db.ObjectId
+  changeType  String   // 'CREATE', 'UPDATE', 'DELETE'
+  oldData     Json?    // Previous exercise data
+  newData     Json     // New exercise data
+  changedAt   DateTime @default(now())
+
+  exercise      Exercise @relation(fields: [exerciseId], references: [id])
+  changedByUser User     @relation(fields: [changedBy], references: [id])
+}
+
+model Account {
+  id                String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String  @db.ObjectId
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  sessionToken String   @unique
+  userId       String   @db.ObjectId
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
