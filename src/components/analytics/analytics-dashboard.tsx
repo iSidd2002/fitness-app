@@ -65,18 +65,13 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
         }
       }
 
-      const url = `/api/analytics?${params.toString()}`
-      console.log('Fetching analytics from:', url)
-      const response = await fetch(url)
+      const response = await fetch(`/api/analytics?${params.toString()}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch analytics')
       }
 
       const analyticsData = await response.json()
-      console.log('Analytics data received:', analyticsData)
-      console.log('Summary:', analyticsData.summary)
-      console.log('Weight progress keys:', Object.keys(analyticsData.weightProgress || {}))
       setData(analyticsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
