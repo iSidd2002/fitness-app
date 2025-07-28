@@ -5,20 +5,32 @@ import { prisma } from "@/lib/prisma"
 import { startOfWeek, format, subDays } from "date-fns"
 import type { WorkoutLogWithExercises, WeightProgressPoint, VolumeTrendPoint, MuscleGroupDistribution, FrequencyTrendPoint, PersonalRecord, AnalyticsSummary } from "@/types/analytics"
 
-// Helper function to get exercise data from workout exercise
+// Helper function to get exercise data from workout exercise (consistent with history page)
 function getExerciseData(workoutExercise: any) {
-  // Try to get from snapshot first, then from relations
+  // Use snapshot data for historical accuracy (same as ExerciseSnapshotService)
   if (workoutExercise.exerciseSnapshot) {
-    return workoutExercise.exerciseSnapshot
+    const snapshot = workoutExercise.exerciseSnapshot
+    return {
+      id: snapshot.id,
+      name: snapshot.name,
+      description: snapshot.description,
+      muscleGroup: snapshot.muscleGroup,
+      equipment: snapshot.equipment,
+      videoUrl: snapshot.videoUrl,
+      userId: snapshot.userId
+    }
   }
 
-  // Fallback to relations
+  // Fallback to relations if no snapshot (shouldn't happen in normal operation)
   const exercise = workoutExercise.replacementExercise || workoutExercise.originalExercise
   return exercise ? {
     id: exercise.id,
     name: exercise.name,
+    description: exercise.description,
     muscleGroup: exercise.muscleGroup,
-    equipment: exercise.equipment
+    equipment: exercise.equipment,
+    videoUrl: exercise.videoUrl,
+    userId: exercise.userId
   } : null
 }
 
@@ -46,8 +58,8 @@ export async function GET(request: NextRequest) {
       lte: endDate ? new Date(endDate) : defaultEndDate
     }
 
-    // Get workout logs with exercises and sets
-    const workoutLogs = await prisma.workoutLog.findMany({
+    // Get workout logs with exercises and sets (using same method as history page for consistency)
+    const rawWorkoutLogs = await prisma.workoutLog.findMany({
       where: {
         userId: session.user.id,
         date: dateFilter
@@ -55,32 +67,50 @@ export async function GET(request: NextRequest) {
       include: {
         workoutExercises: {
           include: {
-            originalExercise: true,
-            replacementExercise: true,
             sets: {
               where: {
                 reps: { gt: 0 },
-                weightKg: { gt: 0 }
+                weightKg: { gte: 0 } // Include bodyweight exercises (weightKg = 0)
               },
               orderBy: { setNumber: 'asc' }
             }
           },
-          where: exerciseId ? { originalExerciseId: exerciseId } : undefined
+          orderBy: { order: 'asc' }
         }
       },
-      orderBy: { date: 'asc' }
+      orderBy: { date: 'desc' }
     })
 
-    // Filter by muscle group if specified
-    const filteredLogs = muscleGroup
+    // Transform data to match history page structure using snapshots for consistency
+    const workoutLogs = rawWorkoutLogs.map(log => ({
+      ...log,
+      workoutExercises: log.workoutExercises.map(we => ({
+        ...we,
+        exercise: getExerciseData(we)
+      }))
+    }))
+
+    // Filter by exercise ID if specified
+    const exerciseFilteredLogs = exerciseId
       ? workoutLogs.map(log => ({
           ...log,
           workoutExercises: log.workoutExercises.filter(we => {
-            const exercise = getExerciseData(we)
-            return exercise && exercise.muscleGroup === muscleGroup
+            const exercise = we.exercise
+            return exercise && exercise.id === exerciseId
           })
         })).filter(log => log.workoutExercises.length > 0)
       : workoutLogs
+
+    // Filter by muscle group if specified
+    const filteredLogs = muscleGroup
+      ? exerciseFilteredLogs.map(log => ({
+          ...log,
+          workoutExercises: log.workoutExercises.filter(we => {
+            const exercise = we.exercise
+            return exercise && exercise.muscleGroup === muscleGroup
+          })
+        })).filter(log => log.workoutExercises.length > 0)
+      : exerciseFilteredLogs
 
     // Calculate analytics data
     const analytics = {
@@ -117,7 +147,7 @@ function calculateWeightProgress(workoutLogs: any[]): { [key: string]: WeightPro
       }
 
       // Get max weight for this exercise in this workout
-      const maxWeight = Math.max(...we.sets.map((set: any) => set.weightKg))
+      const maxWeight = Math.max(...we.sets.map((set: any) => Number(set.weightKg) || 0))
       if (maxWeight > 0) {
         exerciseProgress[exerciseName].push({
           date: format(new Date(log.date), 'yyyy-MM-dd'),
@@ -143,7 +173,10 @@ function calculateVolumeTrends(workoutLogs: any[]): VolumeTrendPoint[] {
 
     log.workoutExercises.forEach((we: any) => {
       we.sets.forEach((set: any) => {
-        weeklyVolume[weekStart] += set.reps * set.weightKg
+        // Ensure we have valid numbers and handle edge cases
+        const reps = Number(set.reps) || 0
+        const weight = Number(set.weightKg) || 0
+        weeklyVolume[weekStart] += reps * weight
       })
     })
   })
@@ -202,13 +235,15 @@ function calculatePersonalRecords(workoutLogs: any[]): PersonalRecord[] {
       const exerciseName = exercise.name
 
       we.sets.forEach((set: any) => {
-        const oneRepMax = calculateOneRepMax(set.weightKg, set.reps)
+        const reps = Number(set.reps) || 0
+        const weight = Number(set.weightKg) || 0
+        const oneRepMax = calculateOneRepMax(weight, reps)
 
         if (!records[exerciseName] || oneRepMax > records[exerciseName].oneRepMax) {
           records[exerciseName] = {
             exerciseName,
-            weight: set.weightKg,
-            reps: set.reps,
+            weight: weight,
+            reps: reps,
             oneRepMax: Math.round(oneRepMax),
             date: format(new Date(log.date), 'yyyy-MM-dd'),
             exerciseId: exercise.id
@@ -235,8 +270,11 @@ function calculateSummaryStats(workoutLogs: any[]): AnalyticsSummary {
 
   const totalVolume = workoutLogs.reduce((total, log: any) =>
     total + log.workoutExercises.reduce((logTotal: number, we: any) =>
-      logTotal + we.sets.reduce((setTotal: number, set: any) =>
-        setTotal + (set.reps * set.weightKg), 0), 0), 0)
+      logTotal + we.sets.reduce((setTotal: number, set: any) => {
+        const reps = Number(set.reps) || 0
+        const weight = Number(set.weightKg) || 0
+        return setTotal + (reps * weight)
+      }, 0), 0), 0)
 
   const uniqueExercises = new Set()
   workoutLogs.forEach((log: any) => {

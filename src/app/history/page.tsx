@@ -83,7 +83,10 @@ function HistoryPageContent() {
   const getTotalVolume = (workoutLog: WorkoutLog) => {
     return workoutLog.workoutExercises.reduce((total, exercise) => {
       return total + exercise.sets.reduce((exerciseTotal, set) => {
-        return exerciseTotal + (set.reps * set.weightKg)
+        // Ensure we have valid numbers and handle edge cases
+        const reps = Number(set.reps) || 0
+        const weight = Number(set.weightKg) || 0
+        return exerciseTotal + (reps * weight)
       }, 0)
     }, 0)
   }
