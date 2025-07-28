@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import { Edit, Save, X, Plus, Trash2, ExternalLink, Video, Link as LinkIcon } from "lucide-react"
 
@@ -67,12 +67,13 @@ const linkTypes = [
   { value: 'other', label: 'Other' }
 ]
 
-export function AdminEditExerciseDialog({ 
-  scheduleExercise, 
-  onExerciseUpdated, 
-  disabled = false 
+export function AdminEditExerciseDialog({
+  scheduleExercise,
+  onExerciseUpdated,
+  disabled = false
 }: AdminEditExerciseDialogProps) {
   const [open, setOpen] = useState(false)
+  const idCounterRef = useRef(0)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
@@ -118,7 +119,7 @@ export function AdminEditExerciseDialog({
     }
 
     const link: ReferenceLink = {
-      id: Date.now().toString(),
+      id: `link-${++idCounterRef.current}`,
       title: newLink.title.trim(),
       url: newLink.url.trim(),
       type: newLink.type

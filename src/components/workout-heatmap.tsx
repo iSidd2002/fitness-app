@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Calendar, Flame } from "lucide-react"
+import { format } from "date-fns"
 
 interface HeatmapData {
   date: string
@@ -76,12 +77,7 @@ export function WorkoutHeatmap({ className }: WorkoutHeatmapProps) {
 
   const formatDate = (dateStr: string): string => {
     const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    })
+    return format(date, 'EEEE, MMMM d, yyyy')
   }
 
   const getMonthLabels = () => {
@@ -97,7 +93,7 @@ export function WorkoutHeatmap({ className }: WorkoutHeatmapProps) {
       if (month !== currentMonth) {
         currentMonth = month
         months.push({
-          label: date.toLocaleDateString('en-US', { month: 'short' }),
+          label: format(date, 'MMM'),
           startIndex: index
         })
       }

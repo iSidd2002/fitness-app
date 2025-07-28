@@ -4,11 +4,14 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
-import { Calendar, Dumbbell, ArrowLeft, BarChart3 } from "lucide-react"
+import { Calendar, Dumbbell, ArrowLeft, BarChart3, Edit3 } from "lucide-react"
 import Link from "next/link"
+import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+
+import { EditWorkoutDialog } from "@/components/history/edit-workout-dialog"
 import { AuthGuard } from "@/components/auth-guard"
 
 interface ExerciseSet {
@@ -70,12 +73,7 @@ function HistoryPageContent() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+    return format(date, 'EEEE, MMMM d, yyyy')
   }
 
   const getTotalSets = (workoutLog: WorkoutLog) => {
@@ -158,13 +156,24 @@ function HistoryPageContent() {
                         {daysOfWeek[workoutLog.dayOfWeek]} • {workoutLog.workoutExercises.length} exercises • {getTotalSets(workoutLog)} sets
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">
-                        Total Volume
-                      </p>
-                      <p className="text-lg font-bold text-blue-600">
-                        {getTotalVolume(workoutLog).toFixed(1)} kg
-                      </p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-900">
+                          Total Volume
+                        </p>
+                        <p className="text-lg font-bold text-blue-600">
+                          {getTotalVolume(workoutLog).toFixed(1)} kg
+                        </p>
+                      </div>
+                      <EditWorkoutDialog
+                        workout={workoutLog}
+                        onWorkoutUpdated={fetchWorkoutHistory}
+                      >
+                        <Button variant="outline" size="sm" className="mobile-button">
+                          <Edit3 className="h-4 w-4" />
+                          <span className="hidden sm:inline ml-2">Edit</span>
+                        </Button>
+                      </EditWorkoutDialog>
                     </div>
                   </div>
                 </CardHeader>

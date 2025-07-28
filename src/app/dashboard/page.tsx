@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { WorkoutHeatmap } from "@/components/workout-heatmap"
 import { FireStreakIndicator } from "@/components/fire-streak-indicator"
-import { ArrowLeft, BarChart3 } from "lucide-react"
+import { AnalyticsDashboard } from "@/components/analytics/analytics-dashboard"
+import { ArrowLeft, BarChart3, TrendingUp } from "lucide-react"
 import Link from "next/link"
 
 export default function DashboardPage() {
@@ -124,6 +125,22 @@ export default function DashboardPage() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Analytics Dashboard */}
+        <div className="mt-8">
+          <Card className="mobile-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Workout Analytics
+              </CardTitle>
+              <CardDescription>
+                Comprehensive analysis of your training progress and patterns
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          <AnalyticsDashboard className="mt-6" />
         </div>
 
         {/* Workout Activity Heatmap */}
