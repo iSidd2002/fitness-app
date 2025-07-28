@@ -179,7 +179,7 @@ function generateHeatmapData(workoutLogs: WorkoutLogData[]) {
     
     // Calculate workout intensity based on total sets completed
     const totalSets = log.workoutExercises.reduce((total: number, exercise) => {
-      return total + exercise.sets.filter((set) => set.reps > 0 && set.weightKg > 0).length
+      return total + exercise.sets.filter((set) => set.reps > 0 && set.weightKg >= 0).length
     }, 0)
     
     if (!workoutsByDate.has(dateStr)) {
