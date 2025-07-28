@@ -45,10 +45,7 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 90),
-    to: new Date()
-  })
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined)
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("all")
   const [selectedExercise, setSelectedExercise] = useState<string>("all")
 
@@ -61,15 +58,25 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
       if (dateRange?.from) params.append('startDate', format(dateRange.from, 'yyyy-MM-dd'))
       if (dateRange?.to) params.append('endDate', format(dateRange.to, 'yyyy-MM-dd'))
       if (selectedMuscleGroup && selectedMuscleGroup !== 'all') params.append('muscleGroup', selectedMuscleGroup)
-      if (selectedExercise && selectedExercise !== 'all') params.append('exerciseId', selectedExercise)
+      if (selectedExercise && selectedExercise !== 'all') {
+        const exerciseId = exerciseNameToId[selectedExercise]
+        if (exerciseId) {
+          params.append('exerciseId', exerciseId)
+        }
+      }
 
-      const response = await fetch(`/api/analytics?${params.toString()}`)
+      const url = `/api/analytics?${params.toString()}`
+      console.log('Fetching analytics from:', url)
+      const response = await fetch(url)
       
       if (!response.ok) {
         throw new Error('Failed to fetch analytics')
       }
 
       const analyticsData = await response.json()
+      console.log('Analytics data received:', analyticsData)
+      console.log('Summary:', analyticsData.summary)
+      console.log('Weight progress keys:', Object.keys(analyticsData.weightProgress || {}))
       setData(analyticsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -84,7 +91,20 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
 
   // Get available muscle groups and exercises from data
   const availableMuscleGroups = data?.muscleGroupDistribution.map(mg => mg.name) || []
-  const availableExercises = data ? Object.keys(data.weightProgress) : []
+
+  // Create exercise name to ID mapping and available exercises list
+  const exerciseNameToId: { [name: string]: string } = {}
+  const availableExercises: string[] = []
+
+  if (data?.weightProgress) {
+    Object.entries(data.weightProgress).forEach(([exerciseName, progressPoints]) => {
+      if (progressPoints.length > 0) {
+        const exerciseId = progressPoints[0].exerciseId
+        exerciseNameToId[exerciseName] = exerciseId
+        availableExercises.push(exerciseName)
+      }
+    })
+  }
 
   if (loading) {
     return (
@@ -103,6 +123,27 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
           <Button onClick={fetchAnalytics} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Check if we have any data to display
+  if (data && data.summary && data.summary.totalWorkouts === 0) {
+    return (
+      <Card className="mobile-card">
+        <CardContent className="text-center py-8">
+          <p className="text-gray-600 mb-4">No workout data found for the selected filters.</p>
+          <p className="text-sm text-gray-500 mb-4">
+            Try adjusting your date range or removing filters to see more data.
+          </p>
+          <Button onClick={() => {
+            setDateRange(undefined)
+            setSelectedMuscleGroup("all")
+            setSelectedExercise("all")
+          }} variant="outline">
+            Reset Filters
           </Button>
         </CardContent>
       </Card>
@@ -131,51 +172,68 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Date Range</label>
-              <DatePickerWithRange
-                date={dateRange}
-                onDateChange={setDateRange}
-                className="w-full"
-              />
-            </div>
-            
-            <div>
-              <label className="text-sm font-medium mb-2 block">Muscle Group</label>
-              <Select value={selectedMuscleGroup} onValueChange={setSelectedMuscleGroup}>
-                <SelectTrigger className="mobile-input">
-                  <SelectValue placeholder="All muscle groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All muscle groups</SelectItem>
-                  {availableMuscleGroups.map(mg => (
-                    <SelectItem key={mg} value={mg}>{mg}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-4">
+            {/* Mobile-first responsive filter layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Date Range</label>
+                <DatePickerWithRange
+                  date={dateRange}
+                  onDateChange={setDateRange}
+                  className="w-full"
+                />
+              </div>
 
-            <div>
-              <label className="text-sm font-medium mb-2 block">Exercise</label>
-              <Select value={selectedExercise} onValueChange={setSelectedExercise}>
-                <SelectTrigger className="mobile-input">
-                  <SelectValue placeholder="All exercises" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All exercises</SelectItem>
-                  {availableExercises.map(ex => (
-                    <SelectItem key={ex} value={ex}>{ex}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Muscle Group</label>
+                <Select value={selectedMuscleGroup} onValueChange={setSelectedMuscleGroup}>
+                  <SelectTrigger className="mobile-input">
+                    <SelectValue placeholder="All muscle groups" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All muscle groups</SelectItem>
+                    {availableMuscleGroups.map(mg => (
+                      <SelectItem key={mg} value={mg}>{mg}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-end">
-              <Button onClick={fetchAnalytics} variant="outline" className="mobile-button w-full">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh
-              </Button>
+              <div className="space-y-2">
+                <label className="text-sm font-medium block">Exercise</label>
+                <Select value={selectedExercise} onValueChange={setSelectedExercise}>
+                  <SelectTrigger className="mobile-input">
+                    <SelectValue placeholder="All exercises" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All exercises</SelectItem>
+                    {availableExercises.map(ex => (
+                      <SelectItem key={ex} value={ex}>{ex}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium block opacity-0 sm:opacity-100">Actions</label>
+                <div className="flex gap-2">
+                  <Button onClick={fetchAnalytics} variant="outline" className="mobile-button flex-1">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setDateRange(undefined)
+                      setSelectedMuscleGroup("all")
+                      setSelectedExercise("all")
+                    }}
+                    variant="ghost"
+                    className="mobile-button flex-1"
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
