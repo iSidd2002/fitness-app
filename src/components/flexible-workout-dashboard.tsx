@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { signOut } from "next-auth/react"
-import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Trophy, BarChart3, Play, ExternalLink } from "lucide-react"
+import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Trophy, BarChart3, Play, ExternalLink, ArrowLeftRight, Info, X } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
@@ -77,11 +77,18 @@ export function FlexibleWorkoutDashboard() {
   const [workoutStarted, setWorkoutStarted] = useState(false)
   const [showSwapDialog, setShowSwapDialog] = useState(false)
   const [swapLoading, setSwapLoading] = useState(false)
+  const [showSwapInfoBanner, setShowSwapInfoBanner] = useState(true)
 
   const today = new Date().getDay()
 
   useEffect(() => {
     fetchWeeklySchedule()
+
+    // Check if user has dismissed the swap info banner
+    const bannerDismissed = localStorage.getItem('swapInfoBannerDismissed')
+    if (bannerDismissed === 'true') {
+      setShowSwapInfoBanner(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -229,6 +236,11 @@ export function FlexibleWorkoutDashboard() {
     // Starting today's workout - no swap needed
     setWorkoutStarted(true)
     toast.success(`Starting ${currentDaySchedule?.name || daysOfWeek[selectedDay]} workout! 💪`)
+  }
+
+  const handleDismissSwapInfoBanner = () => {
+    setShowSwapInfoBanner(false)
+    localStorage.setItem('swapInfoBannerDismissed', 'true')
   }
 
   const handleConfirmDaySwap = async () => {
@@ -406,6 +418,50 @@ export function FlexibleWorkoutDashboard() {
           loading={dayLoading}
           className="mb-6"
         />
+
+        {/* Day Swapping Info Banner */}
+        {showSwapInfoBanner && (
+          <Card className="mb-6 bg-blue-50 border-blue-200 mobile-card">
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-start space-x-2 sm:space-x-3">
+                <div className="flex-shrink-0">
+                  <div className="p-1 bg-blue-100 rounded-full">
+                    <ArrowLeftRight className="h-4 w-4 text-blue-600" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <h4 className="text-sm font-medium text-blue-900 mb-1">
+                        💡 Day Swapping Feature
+                      </h4>
+                      <div className="text-xs sm:text-sm text-blue-800 space-y-1">
+                        <p>
+                          Want to do a different day's workout today? Simply select any day above and click "Start Workout".
+                        </p>
+                        <p>
+                          You'll be prompted to <strong>permanently swap</strong> the workout schedules between the selected day and today.
+                        </p>
+                        <p className="text-xs text-blue-700 mt-2">
+                          This is perfect for adjusting your routine when your schedule changes!
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleDismissSwapInfoBanner}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 p-1 h-auto flex-shrink-0 touch-manipulation"
+                      title="Dismiss this tip"
+                    >
+                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Current Day Header */}
         <div className="mb-6">
