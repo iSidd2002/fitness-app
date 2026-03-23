@@ -103,8 +103,8 @@ export function ExerciseWeightLeaderboard() {
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold flex items-center justify-center gap-2">
-          <Weight className="h-8 w-8" />
+        <h1 className="text-xl sm:text-3xl font-bold flex items-center justify-center gap-2">
+          <Weight className="h-6 w-6 sm:h-8 sm:w-8" />
           Exercise Weight Leaderboards
         </h1>
         <p className="text-muted-foreground">
@@ -205,16 +205,16 @@ export function ExerciseWeightLeaderboard() {
           <CardContent>
             <div className="space-y-3">
               {exerciseLeaderboard.leaderboard.map((entry) => (
-                <div key={entry.userId} className="flex items-center gap-4 p-4 rounded-lg border bg-card">
-                  <div className="flex items-center gap-3">
+                <div key={entry.userId} className="flex items-start gap-3 p-3 sm:p-4 rounded-lg border bg-card">
+                  <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
                     {getRankIcon(entry.rank)}
                     <Badge className={getRankBadgeColor(entry.rank)}>
                       #{entry.rank}
                     </Badge>
                   </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="font-semibold">{entry.userName}</h3>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{entry.userName}</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-sm text-muted-foreground">
                       <div>
                         <span className="font-medium text-foreground">{entry.estimatedOneRepMax}kg</span>

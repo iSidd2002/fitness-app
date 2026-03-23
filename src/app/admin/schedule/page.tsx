@@ -389,16 +389,16 @@ function AdminSchedulePageContent() {
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div className="min-w-0">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                 Weekly Workout Schedule
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 text-sm sm:text-base">
                 Manage exercises for each day of the week. Changes will immediately affect all users.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3 flex-shrink-0">
               <AdminCreateExerciseDialog onExerciseCreated={handleExerciseCreated} />
               <ImportExercisesDialog onImportComplete={fetchData} />
             </div>

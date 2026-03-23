@@ -103,8 +103,8 @@ function HistoryPageContent() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="mobile-header flex items-center justify-between min-h-[56px] sm:h-16">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/">
@@ -131,7 +131,7 @@ function HistoryPageContent() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
         {workoutLogs.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
@@ -150,20 +150,18 @@ function HistoryPageContent() {
             {workoutLogs.map((workoutLog) => (
               <Card key={workoutLog.id}>
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base sm:text-lg truncate">
                         {formatDate(workoutLog.date)}
                       </CardTitle>
                       <p className="text-sm text-gray-600">
                         {daysOfWeek[workoutLog.dayOfWeek]} • {workoutLog.workoutExercises.length} exercises • {getTotalSets(workoutLog)} sets
                       </p>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm font-medium text-gray-900">
-                          Total Volume
-                        </p>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 flex-shrink-0">
+                      <div className="text-left sm:text-right">
+                        <p className="text-sm font-medium text-gray-900">Total Volume</p>
                         <p className="text-lg font-bold text-blue-600">
                           {getTotalVolume(workoutLog).toFixed(1)} kg
                         </p>
@@ -172,7 +170,7 @@ function HistoryPageContent() {
                         workout={workoutLog}
                         onWorkoutUpdated={fetchWorkoutHistory}
                       >
-                        <Button variant="outline" size="sm" className="mobile-button">
+                        <Button variant="outline" size="sm" className="mobile-button touch-manipulation">
                           <Edit3 className="h-4 w-4" />
                           <span className="hidden sm:inline ml-2">Edit</span>
                         </Button>
@@ -188,15 +186,15 @@ function HistoryPageContent() {
                         <div key={workoutExercise.id} className="border-l-4 border-blue-200 pl-4">
                           <div className="flex items-center justify-between mb-2">
                             <div>
-                              <h4 className="font-medium flex items-center space-x-2">
-                                <span>{workoutExercise.exercise.name}</span>
+                              <h4 className="font-medium flex flex-wrap items-center gap-2">
+                                <span className="break-words">{workoutExercise.exercise.name}</span>
                                 {workoutExercise.isCustom && (
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full whitespace-nowrap">
                                     Custom
                                   </span>
                                 )}
                                 {workoutExercise.originalExerciseId && (
-                                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full whitespace-nowrap">
                                     Replaced
                                   </span>
                                 )}

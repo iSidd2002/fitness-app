@@ -136,6 +136,14 @@ export function WorkoutHeatmap({ className }: WorkoutHeatmapProps) {
     setTooltipPosition({ x: event.clientX, y: event.clientY })
   }
 
+  const handleCellTouch = (item: HeatmapData, event: React.TouchEvent) => {
+    const touch = event.touches[0]
+    setHoveredCell(item)
+    setTooltipPosition({ x: touch.clientX, y: touch.clientY })
+    // Auto-dismiss after 2s on touch
+    setTimeout(() => setHoveredCell(null), 2000)
+  }
+
   const handleCellLeave = () => {
     setHoveredCell(null)
   }
@@ -263,6 +271,7 @@ export function WorkoutHeatmap({ className }: WorkoutHeatmapProps) {
                             }`}
                             onMouseEnter={(e) => item && handleCellHover(item, e)}
                             onMouseLeave={handleCellLeave}
+                            onTouchStart={(e) => item && handleCellTouch(item, e)}
                             title={item ? `${formatDate(item.date)}: ${item.count} workout${item.count !== 1 ? 's' : ''}` : ''}
                           />
                         )
