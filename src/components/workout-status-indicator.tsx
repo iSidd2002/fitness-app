@@ -1,9 +1,6 @@
 "use client"
 
-import { Play, CheckCircle, Clock, Dumbbell } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
+import { Play, CheckCircle, Dumbbell, Zap } from "lucide-react"
 
 interface WorkoutStatusIndicatorProps {
   status: "not_started" | "in_progress" | "completed"
@@ -24,143 +21,123 @@ export function WorkoutStatusIndicator({
   completedSets = 0,
   totalSets = 0,
   disabled = false,
-  className = ""
+  className = "",
 }: WorkoutStatusIndicatorProps) {
-  
-  const getStatusConfig = () => {
-    switch (status) {
-      case "not_started":
-        return {
-          icon: Play,
-          text: "Start Workout",
-          subtext: exerciseCount > 0 ? `${exerciseCount} exercises ready` : "No exercises",
-          bgColor: "bg-green-600 hover:bg-green-700",
-          textColor: "text-white",
-          badgeColor: "bg-green-100 text-green-800",
-          showButton: true
-        }
-      case "in_progress":
-        return {
-          icon: Dumbbell,
-          text: "Workout in Progress",
-          subtext: totalSets > 0 ? `${completedSets}/${totalSets} sets completed` : "Log your sets below",
-          bgColor: "bg-blue-600",
-          textColor: "text-white",
-          badgeColor: "bg-blue-100 text-blue-800",
-          showButton: false
-        }
-      case "completed":
-        return {
-          icon: CheckCircle,
-          text: "Workout Completed",
-          subtext: "Great job! Check your history for details",
-          bgColor: "bg-gray-100",
-          textColor: "text-gray-700",
-          badgeColor: "bg-gray-100 text-gray-600",
-          showButton: false
-        }
-      default:
-        return {
-          icon: Clock,
-          text: "Loading...",
-          subtext: "",
-          bgColor: "bg-gray-100",
-          textColor: "text-gray-700",
-          badgeColor: "bg-gray-100 text-gray-600",
-          showButton: false
-        }
-    }
-  }
+  const pct = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0
 
-  const config = getStatusConfig()
-  const IconComponent = config.icon
-
-  if (config.showButton && exerciseCount > 0) {
-    // Show start workout button
+  // ── Not started with exercises ──────────────────────────────────────────────
+  if (status === "not_started" && exerciseCount > 0) {
     return (
-      <Button
+      <button
         onClick={onStartWorkout}
         disabled={disabled}
-        className={`${config.bgColor} ${config.textColor} gap-2 ${className}`}
-        size="lg"
+        className={`w-full group relative overflow-hidden rounded-2xl p-4 text-left transition-all duration-200 active:scale-[0.98] disabled:opacity-50 touch-manipulation ${className}`}
+        style={{
+          background: "linear-gradient(135deg, oklch(0.62 0.19 244) 0%, oklch(0.55 0.22 270) 100%)",
+          boxShadow: "0 8px 32px oklch(0.62 0.19 244 / 35%)",
+        }}
       >
-        <IconComponent className="h-5 w-5" />
-        <div className="flex flex-col items-start">
-          <span className="font-medium">{config.text}</span>
-          {config.subtext && (
-            <span className="text-xs opacity-90">{config.subtext}</span>
-          )}
-        </div>
-      </Button>
-    )
-  }
+        {/* shimmer on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+          style={{ background: "linear-gradient(135deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)" }} />
 
-  if (status === "not_started" && exerciseCount === 0) {
-    // Show no exercises state
-    return (
-      <Card className={`border-dashed border-gray-300 ${className}`}>
-        <CardContent className="p-4 text-center">
-          <div className="text-gray-500">
-            <Dumbbell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium">No exercises scheduled</p>
-            <p className="text-xs">Add exercises to start your workout</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  // Show status indicator (in progress or completed)
-  return (
-    <Card className={`${className}`}>
-      <CardContent className="p-4">
-        <div className="flex items-center space-x-3">
-          <div className={`p-2 rounded-full ${config.badgeColor}`}>
-            <IconComponent className="h-5 w-5" />
+        <div className="relative flex items-center gap-4">
+          <div className="h-12 w-12 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(255,255,255,0.15)" }}>
+            <Play className="h-6 w-6 text-white fill-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-gray-900 truncate">
-                {config.text}
-              </h3>
-              {status === "in_progress" && (
-                <Badge variant="outline" className="text-xs animate-pulse">
-                  Active
-                </Badge>
-              )}
-            </div>
-            {config.subtext && (
-              <p className="text-sm text-gray-600 mt-1">{config.subtext}</p>
-            )}
-            {workoutName && (
-              <p className="text-xs text-gray-500 mt-1">
-                {workoutName}
-              </p>
-            )}
+            <p className="text-white font-bold text-lg leading-tight">
+              {workoutName ? `Start ${workoutName}` : "Start Workout"}
+            </p>
+            <p className="text-white/70 text-sm mt-0.5">
+              {exerciseCount} exercise{exerciseCount !== 1 ? "s" : ""} · Tap to begin
+            </p>
           </div>
-          
-          {status === "in_progress" && totalSets > 0 && (
-            <div className="text-right">
-              <div className="text-lg font-bold text-blue-600">
-                {Math.round((completedSets / totalSets) * 100)}%
-              </div>
-              <div className="text-xs text-gray-500">Complete</div>
-            </div>
-          )}
+          <Zap className="h-5 w-5 text-white/60 flex-shrink-0" />
         </div>
-        
-        {/* Progress bar for in-progress workouts */}
-        {status === "in_progress" && totalSets > 0 && (
-          <div className="mt-3">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(completedSets / totalSets) * 100}%` }}
-              />
-            </div>
+      </button>
+    )
+  }
+
+  // ── No exercises ────────────────────────────────────────────────────────────
+  if (status === "not_started" && exerciseCount === 0) {
+    return (
+      <div
+        className={`rounded-2xl border-2 border-dashed p-6 text-center ${className}`}
+        style={{ borderColor: "var(--border)" }}
+      >
+        <Dumbbell className="h-8 w-8 mx-auto mb-2 opacity-30" style={{ color: "var(--muted-foreground)" }} />
+        <p className="text-sm font-medium" style={{ color: "var(--muted-foreground)" }}>
+          No exercises scheduled
+        </p>
+        <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>
+          Add exercises below to get started
+        </p>
+      </div>
+    )
+  }
+
+  // ── Completed ───────────────────────────────────────────────────────────────
+  if (status === "completed") {
+    return (
+      <div
+        className={`rounded-2xl p-4 flex items-center gap-3 ${className}`}
+        style={{ background: "oklch(0.75 0.17 140 / 12%)", border: "1px solid oklch(0.75 0.17 140 / 30%)" }}
+      >
+        <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: "oklch(0.75 0.17 140 / 20%)" }}>
+          <CheckCircle className="h-5 w-5 text-emerald-400" />
+        </div>
+        <div>
+          <p className="font-semibold text-emerald-400">Workout Complete 🎉</p>
+          <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>
+            Great work! Check history for details.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── In progress ─────────────────────────────────────────────────────────────
+  return (
+    <div
+      className={`rounded-2xl p-4 ${className}`}
+      style={{ background: "var(--card)", border: "1px solid var(--border)" }}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ background: "oklch(0.62 0.19 244 / 15%)" }}>
+          <Dumbbell className="h-5 w-5" style={{ color: "var(--primary)" }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-sm">In Progress</p>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse"
+              style={{ background: "oklch(0.62 0.19 244 / 20%)", color: "var(--primary)" }}>
+              <span className="h-1.5 w-1.5 rounded-full bg-current inline-block" />
+              ACTIVE
+            </span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            {workoutName} · {completedSets}/{totalSets} sets
+          </p>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <p className="text-2xl font-black" style={{ color: "var(--primary)" }}>{pct}%</p>
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--muted)" }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            background: "linear-gradient(90deg, var(--primary), oklch(0.55 0.22 270))",
+          }}
+        />
+      </div>
+    </div>
   )
 }

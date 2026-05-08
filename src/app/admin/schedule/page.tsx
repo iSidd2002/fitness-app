@@ -346,8 +346,8 @@ function AdminSchedulePageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg">Loading admin panel...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg" style={{ color: "var(--muted-foreground)" }}>Loading admin panel...</div>
       </div>
     )
   }
@@ -355,30 +355,30 @@ function AdminSchedulePageContent() {
   // const currentDaySchedule = schedule.find(s => s.dayOfWeek === selectedDay)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="border-b" style={{ background: "var(--card)", borderColor: "var(--border)" }}>
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="mobile-header flex items-center justify-between min-h-[56px] sm:h-16">
             <div className="flex items-center space-x-4">
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  Back
                 </Link>
               </Button>
 
               <div className="flex items-center space-x-2">
-                <Settings className="h-6 w-6 text-blue-600" />
+                <Settings className="h-6 w-6" style={{ color: "var(--primary)" }} />
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">Admin Panel</h1>
-                  <p className="text-xs text-gray-500">Weekly Schedule Management</p>
+                  <h1 className="text-xl font-bold">Admin Panel</h1>
+                  <p className="text-xs" style={{ color: "var(--muted-foreground)" }}>Weekly Schedule Management</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <span className="hidden sm:inline text-sm text-gray-600">
+              <span className="hidden sm:inline text-sm" style={{ color: "var(--muted-foreground)" }}>
                 {session?.user?.name}
               </span>
               <Badge variant="secondary">Admin</Badge>
@@ -391,10 +391,10 @@ function AdminSchedulePageContent() {
         <div className="mb-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
             <div className="min-w-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">
                 Weekly Workout Schedule
               </h2>
-              <p className="text-gray-600 text-sm sm:text-base">
+              <p className="text-sm sm:text-base" style={{ color: "var(--muted-foreground)" }}>
                 Manage exercises for each day of the week. Changes will immediately affect all users.
               </p>
             </div>
@@ -406,38 +406,19 @@ function AdminSchedulePageContent() {
 
           {/* Quick Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {schedule.reduce((total, day) => total + (day.exercises?.length || 0), 0)}
+            {[
+              { value: schedule.reduce((total, day) => total + (day.exercises?.length || 0), 0), label: "Total Exercises", color: "var(--primary)" },
+              { value: schedule.filter(day => day.exercises && day.exercises.length > 0).length, label: "Active Days", color: "oklch(0.75 0.17 140)" },
+              { value: exercises.length, label: "Available Exercises", color: "oklch(0.65 0.2 290)" },
+              { value: new Set(schedule.flatMap(day => day.exercises?.map(ex => ex.exercise.muscleGroup) || [])).size, label: "Muscle Groups", color: "oklch(0.75 0.18 55)" },
+            ].map(({ value, label, color }) => (
+              <Card key={label} className="p-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold" style={{ color }}>{value}</div>
+                  <div className="text-sm" style={{ color: "var(--muted-foreground)" }}>{label}</div>
                 </div>
-                <div className="text-sm text-gray-600">Total Exercises</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {schedule.filter(day => day.exercises && day.exercises.length > 0).length}
-                </div>
-                <div className="text-sm text-gray-600">Active Days</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">
-                  {exercises.length}
-                </div>
-                <div className="text-sm text-gray-600">Available Exercises</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {new Set(schedule.flatMap(day => day.exercises?.map(ex => ex.exercise.muscleGroup) || [])).size}
-                </div>
-                <div className="text-sm text-gray-600">Muscle Groups</div>
-              </div>
-            </Card>
+              </Card>
+            ))}
           </div>
         </div>
 
@@ -500,7 +481,7 @@ function AdminSchedulePageContent() {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or use traditional method</span>
+                  <span className="px-2" style={{ background: "var(--card)", color: "var(--muted-foreground)" }}>Or use traditional method</span>
                 </div>
               </div>
 
@@ -580,7 +561,7 @@ function AdminSchedulePageContent() {
         {/* Schedule Display */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Weekly Schedule Overview</h3>
+            <h3 className="text-lg font-semibold">Weekly Schedule Overview</h3>
             <Badge variant="outline" className="text-xs">
               {schedule.reduce((total, day) => total + (day.exercises?.length || 0), 0)} total exercises
             </Badge>
@@ -591,8 +572,8 @@ function AdminSchedulePageContent() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="text-gray-500">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Weekly Schedule Found</h3>
+                    <Calendar className="h-12 w-12 mx-auto mb-4" style={{ color: "var(--muted-foreground)" }} />
+                    <h3 className="text-lg font-medium mb-2">No Weekly Schedule Found</h3>
                     <p className="text-sm">Initialize the weekly schedule to start managing exercises for each day.</p>
                   </div>
                   <Button
@@ -616,7 +597,7 @@ function AdminSchedulePageContent() {
               </CardContent>
             </Card>
           ) : (
-            <div className="admin-schedule-grid grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            <div className="admin-schedule-grid grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
             {daysOfWeek.map((day) => {
               const daySchedule = schedule.find(s => s.dayOfWeek === day.value)
               const exerciseCount = daySchedule?.exercises.length || 0
@@ -642,15 +623,14 @@ function AdminSchedulePageContent() {
                       </Badge>
                     </div>
                     {daySchedule?.name && daySchedule.name !== day.label && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                      <button
                         onClick={() => handleEditDayType(day.value, daySchedule.name, exerciseCount)}
-                        className="text-sm text-blue-600 font-medium hover:text-blue-700 hover:bg-blue-50 p-1 h-auto justify-start"
+                        className="flex items-center gap-1 text-sm font-medium px-1 py-0.5 rounded touch-manipulation"
+                        style={{ color: "var(--primary)" }}
                       >
                         {daySchedule.name}
-                        <Settings className="h-3 w-3 ml-1 opacity-60" />
-                      </Button>
+                        <Settings className="h-3 w-3 opacity-60" />
+                      </button>
                     )}
                   </CardHeader>
                   <CardContent className="pt-0">
@@ -661,8 +641,12 @@ function AdminSchedulePageContent() {
                             {...provided.droppableProps}
                             ref={provided.innerRef}
                             className={`space-y-3 min-h-[100px] p-3 rounded-lg transition-colors ${
-                              snapshot.isDraggingOver ? 'bg-blue-50 border-2 border-blue-200 border-dashed' : 'bg-gray-50'
+                              snapshot.isDraggingOver ? 'border-2 border-dashed' : ''
                             }`}
+                            style={{
+                              background: snapshot.isDraggingOver ? "oklch(0.62 0.19 244 / 8%)" : "var(--muted)",
+                              borderColor: snapshot.isDraggingOver ? "var(--primary)" : undefined,
+                            }}
                           >
                             {daySchedule?.exercises
                               .sort((a, b) => a.order - b.order)
@@ -676,48 +660,35 @@ function AdminSchedulePageContent() {
                                     <div
                                       ref={provided.innerRef}
                                       {...provided.draggableProps}
-                                      className={`admin-exercise-card bg-white border rounded-lg p-4 shadow-sm transition-all ${
-                                        snapshot.isDragging ? 'shadow-lg rotate-2' : 'hover:shadow-md'
-                                      } min-h-[90px]`}
+                                      className={`border rounded-xl transition-all ${snapshot.isDragging ? 'shadow-xl rotate-1 opacity-90' : ''}`}
+                                      style={{
+                                        background: snapshot.isDragging ? "var(--card)" : "oklch(0.265 0.04 258)",
+                                        borderColor: "var(--border)",
+                                      }}
                                     >
-                                      <div className="flex items-start justify-between gap-3">
-                                        <div className="flex-1 min-w-0 pr-2">
-                                          <div className="flex items-center space-x-2">
-                                            <div
-                                              {...provided.dragHandleProps}
-                                              className="cursor-grab active:cursor-grabbing p-1 hover:bg-gray-100 rounded"
-                                            >
-                                              <GripVertical className="h-4 w-4 text-gray-400" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p className="font-medium text-sm truncate mb-2">
-                                                {scheduleExercise.exercise.name}
-                                              </p>
-                                              <div className="flex flex-wrap gap-2">
-                                                <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                                  {scheduleExercise.exercise.muscleGroup}
-                                                </Badge>
-                                                <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                                  {scheduleExercise.exercise.equipment}
-                                                </Badge>
-                                              </div>
-                                            </div>
-                                          </div>
+                                      {/* Top row: drag handle + name + actions */}
+                                      <div className="flex items-center gap-2 px-3 pt-3 pb-1.5">
+                                        <div
+                                          {...provided.dragHandleProps}
+                                          className="cursor-grab active:cursor-grabbing flex-shrink-0 touch-manipulation"
+                                        >
+                                          <GripVertical className="h-4 w-4" style={{ color: "var(--muted-foreground)" }} />
                                         </div>
-                                        <div className="flex items-center gap-3 flex-shrink-0">
-                                          {/* Video Link Button */}
+                                        <p className="flex-1 min-w-0 font-semibold text-sm leading-snug" style={{ color: "var(--foreground)" }}>
+                                          {scheduleExercise.exercise.name}
+                                        </p>
+                                        <div className="flex items-center gap-0.5 flex-shrink-0">
                                           {scheduleExercise.exercise.videoUrl && (
                                             <Button
                                               variant="ghost"
                                               size="sm"
                                               onClick={() => window.open(scheduleExercise.exercise.videoUrl, '_blank')}
-                                              className="h-9 w-9 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 touch-manipulation"
+                                              className="h-8 w-8 p-0 touch-manipulation text-emerald-400 hover:text-emerald-300 hover:bg-emerald-400/10"
                                               title="Watch exercise video"
                                             >
-                                              <Play className="h-4 w-4" />
+                                              <Play className="h-3.5 w-3.5" />
                                             </Button>
                                           )}
-
                                           <AdminEditExerciseDialog
                                             scheduleExercise={scheduleExercise}
                                             onExerciseUpdated={fetchData}
@@ -728,11 +699,20 @@ function AdminSchedulePageContent() {
                                             size="sm"
                                             onClick={() => handleRemoveExercise(scheduleExercise.id, scheduleExercise.exercise.name)}
                                             disabled={saving}
-                                            className="h-9 w-9 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 touch-manipulation"
+                                            className="h-8 w-8 p-0 touch-manipulation text-destructive hover:text-destructive hover:bg-destructive/10"
                                           >
-                                            <Trash2 className="h-4 w-4" />
+                                            <Trash2 className="h-3.5 w-3.5" />
                                           </Button>
                                         </div>
+                                      </div>
+                                      {/* Bottom row: badges */}
+                                      <div className="flex flex-wrap gap-1.5 px-3 pb-3">
+                                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: "oklch(0.62 0.19 244 / 15%)", color: "var(--primary)" }}>
+                                          {scheduleExercise.exercise.muscleGroup}
+                                        </span>
+                                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: "oklch(1 0 0 / 8%)", color: "var(--muted-foreground)" }}>
+                                          {scheduleExercise.exercise.equipment}
+                                        </span>
                                       </div>
                                     </div>
                                   )}
@@ -741,8 +721,8 @@ function AdminSchedulePageContent() {
                             {provided.placeholder}
                             {(!daySchedule?.exercises || daySchedule.exercises.length === 0) && (
                               <div className="text-center py-8">
-                                <p className="text-gray-400 text-sm">No exercises scheduled</p>
-                                <p className="text-gray-400 text-xs mt-1">Drag exercises here or use the form above</p>
+                                <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>No exercises scheduled</p>
+                                <p className="text-xs mt-1" style={{ color: "var(--muted-foreground)" }}>Drag exercises here or use the form above</p>
                               </div>
                             )}
                           </div>
@@ -758,10 +738,10 @@ function AdminSchedulePageContent() {
         </div>
 
         {/* Help Section */}
-        <Card className="mt-8 bg-blue-50 border-blue-200">
+        <Card className="mt-8" style={{ background: "oklch(0.62 0.19 244 / 8%)", borderColor: "oklch(0.62 0.19 244 / 25%)" }}>
           <CardContent className="p-6">
-            <h4 className="font-semibold text-blue-900 mb-3">💡 Admin Tips</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+            <h4 className="font-semibold mb-3" style={{ color: "var(--primary)" }}>💡 Admin Tips</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ color: "var(--muted-foreground)" }}>
               <div>
                 <p className="font-medium mb-1">🎯 Drag & Drop</p>
                 <p>Drag exercises within each day to reorder them</p>

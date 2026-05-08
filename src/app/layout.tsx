@@ -1,10 +1,12 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "@/components/ui/sonner";
-import { AuthStatus } from "@/components/auth-status";
 import { Analytics } from "@vercel/analytics/next";
+import { BottomNav } from "@/components/bottom-nav"
+import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,14 +19,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Siddhant's Workout Plan for Becoming Gymcel",
-  description: "Siddhant's workout plan for becoming gymcel",
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
+  title: "IncelFitness",
+  description: "Become true gymcel",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "IncelFitness",
+  },
 };
 
 export default function RootLayout({
@@ -33,16 +35,33 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ scrollPaddingBottom: "var(--nav-height)" }}>
+      <head>
+        <meta name="theme-color" content="#1a1f2e" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         suppressHydrationWarning={true}
       >
         <Providers>
-          {children}
+          <main
+            style={{
+              paddingBottom: "calc(var(--nav-height) + var(--summary-bar-height))",
+            }}
+          >
+            {children}
+          </main>
           <Toaster />
-          <AuthStatus />
+          <BottomNav />
+          <PWAInstallPrompt />
           <Analytics />
+          <Script id="sw-register" strategy="afterInteractive">{`
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.register('/sw.js').catch(() => {});
+            }
+          `}</Script>
         </Providers>
       </body>
     </html>

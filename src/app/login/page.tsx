@@ -10,10 +10,10 @@ import { z } from "zod"
 import Link from "next/link"
 import { signIn } from "next-auth/react"
 import { toast } from "sonner"
+import { Dumbbell, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 
 const loginSchema = z.object({
@@ -31,26 +31,21 @@ function LoginForm() {
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
+    defaultValues: { email: "", password: "" },
   })
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true)
-
     try {
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       })
-
       if (result?.error) {
         toast.error("Invalid email or password")
       } else if (result?.ok) {
-        toast.success("Signed in successfully!")
+        toast.success("Welcome back! 💪")
         router.push(callbackUrl)
         router.refresh()
       }
@@ -62,15 +57,40 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Sign in to Siddhant&apos;s Workout Plan</CardTitle>
-          <CardDescription className="text-center">
-            Enter your email and password to access Siddhant&apos;s workout plan for becoming gymcel
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
+      style={{ background: "var(--background)" }}
+    >
+      {/* Decorative blurred blobs */}
+      <div
+        className="absolute top-[-80px] left-[-80px] w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none"
+        style={{ background: "var(--primary)" }}
+      />
+      <div
+        className="absolute bottom-[-60px] right-[-60px] w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
+        style={{ background: "var(--primary)" }}
+      />
+
+      <div className="w-full max-w-sm relative z-10">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div
+            className="h-16 w-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
+            style={{ background: "var(--primary)" }}
+          >
+            <Dumbbell className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">IncelFitness</h1>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
+            Become true gymcel
+          </p>
+        </div>
+
+        {/* Card */}
+        <div
+          className="rounded-2xl p-6 shadow-xl border"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}
+        >
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -78,9 +98,14 @@ function LoginForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-sm font-medium">Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Enter your email" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        className="h-11 text-base"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -91,29 +116,51 @@ function LoginForm() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel className="text-sm font-medium">Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Enter your password" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        className="h-11 text-base"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Signing in..." : "Sign in"}
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold mt-2"
+                style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  "Sign in"
+                )}
               </Button>
             </form>
           </Form>
-        </CardContent>
-        <CardFooter>
-          <p className="text-center text-sm text-gray-600 w-full">
-            Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-sm mt-6" style={{ color: "var(--muted-foreground)" }}>
+          Don&apos;t have an account?{" "}
+          <Link
+            href="/signup"
+            className="font-semibold underline-offset-4 hover:underline"
+            style={{ color: "var(--primary)" }}
+          >
+            Sign up
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

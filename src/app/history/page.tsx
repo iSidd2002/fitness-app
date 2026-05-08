@@ -4,12 +4,12 @@ export const dynamic = 'force-dynamic'
 
 import { useState, useEffect, Suspense } from "react"
 import { useSession } from "next-auth/react"
-import { Calendar, Dumbbell, ArrowLeft, BarChart3, Edit3 } from "lucide-react"
-import Link from "next/link"
+import { Calendar, Dumbbell, Edit3 } from "lucide-react"
 import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 
 import { EditWorkoutDialog } from "@/components/history/edit-workout-dialog"
 import { AuthGuard } from "@/components/auth-guard"
@@ -93,51 +93,25 @@ function HistoryPageContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading workout history...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-          <div className="mobile-header flex items-center justify-between min-h-[56px] sm:h-16">
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Workout
-                </Link>
-              </Button>
-
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-6 w-6 text-blue-600" />
-                <h1 className="text-xl font-bold text-gray-900">Workout History</h1>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="text-purple-600 hover:text-purple-700 hover:bg-purple-50">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Dashboard</span>
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <div className="min-h-screen">
       <div className="max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Calendar className="h-6 w-6" style={{ color: "var(--primary)" }} />
+          <h1 className="text-2xl font-bold">Workout History</h1>
+        </div>
         {workoutLogs.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center">
-              <Dumbbell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No workout history yet</h3>
-              <p className="text-gray-600 mb-4">
+              <Dumbbell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium font-semibold mb-2">No workout history yet</h3>
+              <p className="text-muted-foreground mb-4">
                 Complete your first workout to see it here!
               </p>
               <Button asChild>
@@ -155,14 +129,14 @@ function HistoryPageContent() {
                       <CardTitle className="text-base sm:text-lg truncate">
                         {formatDate(workoutLog.date)}
                       </CardTitle>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-muted-foreground">
                         {daysOfWeek[workoutLog.dayOfWeek]} • {workoutLog.workoutExercises.length} exercises • {getTotalSets(workoutLog)} sets
                       </p>
                     </div>
                     <div className="flex items-center justify-between sm:justify-end gap-4 flex-shrink-0">
                       <div className="text-left sm:text-right">
-                        <p className="text-sm font-medium text-gray-900">Total Volume</p>
-                        <p className="text-lg font-bold text-blue-600">
+                        <p className="text-sm font-medium font-semibold">Total Volume</p>
+                        <p className="text-lg font-bold" style={{ color: "var(--primary)" }}>
                           {getTotalVolume(workoutLog).toFixed(1)} kg
                         </p>
                       </div>
@@ -183,23 +157,23 @@ function HistoryPageContent() {
                     {workoutLog.workoutExercises
                       .sort((a, b) => a.order - b.order)
                       .map((workoutExercise) => (
-                        <div key={workoutExercise.id} className="border-l-4 border-blue-200 pl-4">
+                        <div key={workoutExercise.id} className="border-l-4 pl-4" style={{ borderColor: "var(--primary)" }}>
                           <div className="flex items-center justify-between mb-2">
                             <div>
                               <h4 className="font-medium flex flex-wrap items-center gap-2">
                                 <span className="break-words">{workoutExercise.exercise.name}</span>
                                 {workoutExercise.isCustom && (
-                                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full whitespace-nowrap">
+                                  <span className="text-xs px-2 py-1 rounded-full whitespace-nowrap" style={{ backgroundColor: "oklch(0.62 0.19 244 / 20%)", color: "var(--primary)" }}>
                                     Custom
                                   </span>
                                 )}
                                 {workoutExercise.originalExerciseId && (
-                                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full whitespace-nowrap">
+                                  <span className="text-xs px-2 py-1 rounded-full whitespace-nowrap text-orange-400" style={{ backgroundColor: "oklch(0.7 0.18 50 / 20%)" }}>
                                     Replaced
                                   </span>
                                 )}
                               </h4>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-muted-foreground">
                                 {workoutExercise.exercise.muscleGroup} • {workoutExercise.exercise.equipment}
                                 {workoutExercise.originalExerciseName && (
                                   <span className="block text-xs text-orange-600 mt-1">
@@ -211,7 +185,7 @@ function HistoryPageContent() {
                           </div>
                           
                           {/* Sets */}
-                          <div className="grid grid-cols-3 gap-2 text-xs font-medium text-gray-700 mb-2">
+                          <div className="grid grid-cols-3 gap-2 text-xs font-medium text-muted-foreground mb-2">
                             <div>Set</div>
                             <div>Reps</div>
                             <div>Weight (kg)</div>

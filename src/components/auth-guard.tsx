@@ -57,14 +57,12 @@ export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuar
   if (!mounted || status === "loading") {
     return (
       fallback || (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="min-h-screen flex items-center justify-center">
           <Card className="w-full max-w-md">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                Checking Authentication
-              </h2>
-              <p className="text-sm text-gray-600 text-center">
+              <Loader2 className="h-8 w-8 animate-spin mb-4" style={{ color: "var(--primary)" }} />
+              <h2 className="text-lg font-semibold mb-2">Checking Authentication</h2>
+              <p className="text-sm text-center" style={{ color: "var(--muted-foreground)" }}>
                 Please wait while we verify your session...
               </p>
             </CardContent>
@@ -77,14 +75,12 @@ export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuar
   // Show error state if not authenticated
   if (!session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-8 w-8 text-red-600 mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Authentication Required
-            </h2>
-            <p className="text-sm text-gray-600 text-center mb-6">
+            <AlertCircle className="h-8 w-8 text-destructive mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Authentication Required</h2>
+            <p className="text-sm text-center mb-6" style={{ color: "var(--muted-foreground)" }}>
               You need to be logged in to access this page.
             </p>
             <Button onClick={() => router.push("/login")} className="w-full">
@@ -99,14 +95,12 @@ export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuar
   // Show error state if admin required but user is not admin
   if (requireAdmin && session.user?.role !== "ADMIN") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Shield className="h-8 w-8 text-orange-600 mb-4" />
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              Admin Access Required
-            </h2>
-            <p className="text-sm text-gray-600 text-center mb-6">
+            <Shield className="h-8 w-8 text-orange-400 mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Admin Access Required</h2>
+            <p className="text-sm text-center mb-6" style={{ color: "var(--muted-foreground)" }}>
               You need administrator privileges to access this page.
             </p>
             <Button onClick={() => router.push("/")} className="w-full">

@@ -9,10 +9,10 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import Link from "next/link"
 import { toast } from "sonner"
+import { Dumbbell, Loader2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 
 const signupSchema = z.object({
@@ -33,37 +33,20 @@ export default function SignupPage() {
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
+    defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
   })
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true)
-
     try {
       const response = await fetch("/api/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: data.name,
-          email: data.email,
-          password: data.password,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
       })
-
       const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || "Something went wrong")
-      }
-
-      toast.success("Account created successfully! Please sign in.")
+      if (!response.ok) throw new Error(result.error || "Something went wrong")
+      toast.success("Account created! Please sign in.")
       router.push("/login")
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create account")
@@ -73,15 +56,40 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
-          <CardDescription className="text-center">
-            Enter your details below to create your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div
+      className="min-h-screen flex items-center justify-center px-4 py-12 relative overflow-hidden"
+      style={{ background: "var(--background)" }}
+    >
+      {/* Decorative blobs */}
+      <div
+        className="absolute top-[-80px] right-[-80px] w-72 h-72 rounded-full blur-3xl opacity-20 pointer-events-none"
+        style={{ background: "var(--primary)" }}
+      />
+      <div
+        className="absolute bottom-[-60px] left-[-60px] w-96 h-96 rounded-full blur-3xl opacity-10 pointer-events-none"
+        style={{ background: "var(--primary)" }}
+      />
+
+      <div className="w-full max-w-sm relative z-10">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div
+            className="h-16 w-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg"
+            style={{ background: "var(--primary)" }}
+          >
+            <Dumbbell className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">IncelFitness</h1>
+          <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>
+            Become true gymcel
+          </p>
+        </div>
+
+        {/* Card */}
+        <div
+          className="rounded-2xl p-6 shadow-xl border"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}
+        >
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
@@ -89,9 +97,9 @@ export default function SignupPage() {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Name</FormLabel>
+                    <FormLabel className="text-sm font-medium">Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your name" {...field} />
+                      <Input placeholder="Your name" className="h-11 text-base" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -102,9 +110,9 @@ export default function SignupPage() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel className="text-sm font-medium">Email</FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Enter your email" {...field} />
+                      <Input type="email" placeholder="you@example.com" className="h-11 text-base" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -115,9 +123,9 @@ export default function SignupPage() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel className="text-sm font-medium">Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Enter your password" {...field} />
+                      <Input type="password" placeholder="••••••••" className="h-11 text-base" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -128,29 +136,46 @@ export default function SignupPage() {
                 name="confirmPassword"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
+                    <FormLabel className="text-sm font-medium">Confirm Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Confirm your password" {...field} />
+                      <Input type="password" placeholder="••••••••" className="h-11 text-base" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create account"}
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-base font-semibold mt-2"
+                style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  "Create account"
+                )}
               </Button>
             </form>
           </Form>
-        </CardContent>
-        <CardFooter>
-          <p className="text-center text-sm text-gray-600 w-full">
-            Already have an account?{" "}
-            <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              Sign in
-            </Link>
-          </p>
-        </CardFooter>
-      </Card>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-sm mt-6" style={{ color: "var(--muted-foreground)" }}>
+          Already have an account?{" "}
+          <Link
+            href="/login"
+            className="font-semibold underline-offset-4 hover:underline"
+            style={{ color: "var(--primary)" }}
+          >
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

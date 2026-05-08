@@ -1,19 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Flame, TrendingUp, Calendar, Target } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Flame, TrendingUp, Target, Calendar } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 
 interface StreakData {
   currentStreak: number
@@ -26,234 +17,161 @@ interface FireStreakIndicatorProps {
   className?: string
 }
 
+function getStreakColor(n: number) {
+  if (n === 0) return "text-muted-foreground"
+  if (n < 3) return "text-orange-400"
+  if (n < 7) return "text-orange-500"
+  if (n < 14) return "text-red-400"
+  if (n < 30) return "text-red-500"
+  return "text-red-600"
+}
+
+function getStreakGlow(n: number) {
+  if (n === 0) return "none"
+  if (n < 7) return "0 0 12px oklch(0.75 0.18 55 / 50%)"
+  if (n < 14) return "0 0 16px oklch(0.65 0.22 30 / 60%)"
+  return "0 0 24px oklch(0.6 0.25 25 / 70%)"
+}
+
+function getMessage(n: number) {
+  if (n === 0) return "Start your streak today!"
+  if (n < 3) return "Great start! Keep it going!"
+  if (n < 7) return "Building momentum! 🔥"
+  if (n < 14) return "You're on fire!"
+  if (n < 30) return "Incredible dedication!"
+  return "Legendary streak! 🏆"
+}
+
 export function FireStreakIndicator({ className }: FireStreakIndicatorProps) {
   const [data, setData] = useState<StreakData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    fetchStreakData()
-
-    // Listen for workout save events to refresh streak data
-    const handleWorkoutSaved = () => {
-      fetchStreakData()
-    }
-
-    window.addEventListener('workoutSaved', handleWorkoutSaved)
-
-    return () => {
-      window.removeEventListener('workoutSaved', handleWorkoutSaved)
-    }
+    fetchStreak()
+    const handler = () => fetchStreak()
+    window.addEventListener("workoutSaved", handler)
+    return () => window.removeEventListener("workoutSaved", handler)
   }, [])
 
-  const fetchStreakData = async () => {
+  const fetchStreak = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/workout/streak')
-      if (!response.ok) {
-        throw new Error('Failed to fetch streak data')
-      }
-      const streakData = await response.json()
-      setData(streakData)
-    } catch (error) {
-      console.error('Error fetching streak data:', error)
-      setError('Failed to load streak data')
+      const res = await fetch("/api/workout/streak")
+      if (res.ok) setData(await res.json())
+    } catch {
+      // silent
     } finally {
       setLoading(false)
     }
   }
 
-  const getStreakColor = (streak: number): string => {
-    if (streak === 0) return 'text-gray-400'
-    if (streak < 3) return 'text-orange-500'
-    if (streak < 7) return 'text-orange-600'
-    if (streak < 14) return 'text-red-500'
-    if (streak < 30) return 'text-red-600'
-    return 'text-red-700'
-  }
-
-  const getStreakMessage = (streak: number): string => {
-    if (streak === 0) return "Start your streak today!"
-    if (streak === 1) return "Great start! Keep it going!"
-    if (streak < 7) return "Building momentum!"
-    if (streak < 14) return "You're on fire!"
-    if (streak < 30) return "Incredible dedication!"
-    return "Legendary streak!"
-  }
-
-  const getMotivationalMessage = (streak: number): string => {
-    if (streak === 0) return "Every journey begins with a single workout. Start today!"
-    if (streak < 3) return "Consistency is key. You're building a great habit!"
-    if (streak < 7) return "Amazing! You're developing real discipline!"
-    if (streak < 14) return "Outstanding! You're in the zone!"
-    if (streak < 30) return "Phenomenal! You're a workout machine!"
-    return "Absolutely legendary! You're an inspiration!"
-  }
-
   if (loading) {
     return (
-      <div className={`flex items-center gap-2 ${className}`}>
-        <Skeleton className="h-6 w-6 rounded-full" />
-        <Skeleton className="h-4 w-8" />
+      <div className={cn("flex items-center gap-1.5", className)}>
+        <Skeleton className="h-5 w-5 rounded-full" />
+        <Skeleton className="h-4 w-6" />
       </div>
     )
   }
 
-  if (error || !data) {
-    return (
-      <div className={`flex items-center gap-2 text-gray-400 ${className}`}>
-        <Flame className="h-5 w-5" />
-        <span className="text-sm">--</span>
-      </div>
-    )
-  }
+  const streak = data?.currentStreak ?? 0
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`flex items-center gap-2 hover:bg-orange-50 hover:text-orange-700 transition-colors ${className}`}
+        <button
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-200 touch-manipulation hover:scale-105 active:scale-95",
+            className
+          )}
+          style={{ background: "var(--muted)" }}
         >
-          <Flame className={`h-5 w-5 ${getStreakColor(data.currentStreak)}`} />
-          <span className={`font-bold text-sm ${getStreakColor(data.currentStreak)}`}>
-            {data.currentStreak}
+          <Flame
+            className={cn("h-5 w-5", getStreakColor(streak))}
+            style={{ filter: getStreakGlow(streak) !== "none" ? `drop-shadow(${getStreakGlow(streak)})` : undefined }}
+          />
+          <span className={cn("font-bold text-sm tabular-nums", getStreakColor(streak))}>
+            {streak}
           </span>
-        </Button>
+        </button>
       </DialogTrigger>
-      
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Flame className={`h-6 w-6 ${getStreakColor(data.currentStreak)}`} />
-            Workout Streak
-          </DialogTitle>
-          <DialogDescription>
-            {getMotivationalMessage(data.currentStreak)}
-          </DialogDescription>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          {/* Current Streak Card */}
-          <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="p-4">
-              <div className="text-center">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <Flame className={`h-8 w-8 ${getStreakColor(data.currentStreak)}`} />
-                  <span className={`text-3xl font-bold ${getStreakColor(data.currentStreak)}`}>
-                    {data.currentStreak}
-                  </span>
-                </div>
-                <p className="text-sm font-medium text-orange-800">
-                  {getStreakMessage(data.currentStreak)}
-                </p>
-                <p className="text-xs text-orange-600 mt-1">
-                  {data.currentStreak === 1 ? 'Day' : 'Days'} in a row
-                </p>
+
+      <DialogContent className="max-w-sm rounded-2xl p-0 overflow-hidden border" style={{ borderColor: "var(--border)" }}>
+        {/* Header gradient */}
+        <div
+          className="px-6 pt-6 pb-8 relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, oklch(0.22 0.05 258) 0%, oklch(0.18 0.04 270) 100%)" }}
+        >
+          <div className="absolute inset-0 opacity-20"
+            style={{ background: "radial-gradient(circle at 80% 20%, oklch(0.75 0.18 55) 0%, transparent 60%)" }} />
+          <DialogHeader className="relative">
+            <DialogTitle className="flex items-center gap-2 text-white">
+              <Flame className={cn("h-6 w-6", getStreakColor(streak))}
+                style={{ filter: `drop-shadow(${getStreakGlow(streak)})` }} />
+              Workout Streak
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="relative flex flex-col items-center mt-4">
+            <div className="flex items-end gap-2">
+              <span className={cn("text-7xl font-black tabular-nums", getStreakColor(streak))}
+                style={{ textShadow: getStreakGlow(streak) }}>
+                {streak}
+              </span>
+              <span className="text-white/60 text-lg mb-3 font-medium">days</span>
+            </div>
+            <p className="text-white/80 text-sm font-medium">{getMessage(streak)}</p>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="p-4 space-y-3" style={{ background: "var(--card)" }}>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: TrendingUp, label: "Best", value: data?.longestStreak ?? 0, unit: "days", color: "text-emerald-400", bg: "oklch(0.75 0.17 140 / 12%)" },
+              { icon: Target, label: "Total", value: data?.totalWorkouts ?? 0, unit: "sessions", color: "text-primary", bg: "oklch(0.62 0.19 244 / 12%)" },
+              { icon: Calendar, label: "This week", value: data?.thisWeekWorkouts ?? 0, unit: "/ 7", color: "text-violet-400", bg: "oklch(0.65 0.2 290 / 12%)" },
+            ].map(({ icon: Icon, label, value, unit, color, bg }) => (
+              <div key={label} className="rounded-xl p-3 text-center" style={{ background: bg }}>
+                <Icon className={cn("h-4 w-4 mx-auto mb-1", color)} />
+                <p className={cn("text-2xl font-black tabular-nums", color)}>{value}</p>
+                <p className="text-[10px] font-medium mt-0.5" style={{ color: "var(--muted-foreground)" }}>{unit}</p>
+                <p className="text-[10px]" style={{ color: "var(--muted-foreground)" }}>{label}</p>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-600" />
-                  Best Streak
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-green-600">
-                  {data.longestStreak}
-                </div>
-                <p className="text-xs text-gray-600">
-                  {data.longestStreak === 1 ? 'day' : 'days'}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Target className="h-4 w-4 text-blue-600" />
-                  Total Workouts
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="text-2xl font-bold text-blue-600">
-                  {data.totalWorkouts}
-                </div>
-                <p className="text-xs text-gray-600">
-                  all time
-                </p>
-              </CardContent>
-            </Card>
+            ))}
           </div>
 
-          {/* This Week Progress */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-purple-600" />
-                This Week
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-2xl font-bold text-purple-600">
-                  {data.thisWeekWorkouts}
-                </span>
-                <Badge variant={data.thisWeekWorkouts >= 3 ? "default" : "secondary"}>
-                  {data.thisWeekWorkouts}/7 days
-                </Badge>
-              </div>
-              
-              {/* Week Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2">
+          {/* Week bar */}
+          <div className="rounded-xl p-3" style={{ background: "var(--muted)" }}>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-semibold">This week</span>
+              <span className="text-xs font-bold" style={{ color: "var(--primary)" }}>
+                {data?.thisWeekWorkouts ?? 0}/7
+              </span>
+            </div>
+            <div className="flex gap-1">
+              {Array.from({ length: 7 }).map((_, i) => (
                 <div
-                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min((data.thisWeekWorkouts / 7) * 100, 100)}%` }}
+                  key={i}
+                  className="flex-1 h-2 rounded-full transition-all"
+                  style={{
+                    background: i < (data?.thisWeekWorkouts ?? 0)
+                      ? "var(--primary)"
+                      : "oklch(1 0 0 / 10%)",
+                  }}
                 />
-              </div>
-              
-              <p className="text-xs text-gray-600 mt-2">
-                {data.thisWeekWorkouts >= 5 
-                  ? "Excellent week!" 
-                  : data.thisWeekWorkouts >= 3 
-                  ? "Good progress!" 
-                  : "Keep pushing!"}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Streak Tips */}
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-4">
-              <h4 className="font-medium text-blue-900 mb-2">💡 Streak Tips</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Consistency beats intensity</li>
-                <li>• Even 10 minutes counts</li>
-                <li>• Plan rest days strategically</li>
-                <li>• Track your progress daily</li>
-              </ul>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
   )
 }
 
-// Hook for other components to refresh streak data
 export function useStreakRefresh() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
-  
-  const refreshStreak = () => {
-    setRefreshTrigger(prev => prev + 1)
-  }
-  
+  const refreshStreak = () => setRefreshTrigger(p => p + 1)
   return { refreshStreak, refreshTrigger }
 }

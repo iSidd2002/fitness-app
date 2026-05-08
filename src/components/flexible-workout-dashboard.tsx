@@ -1,66 +1,74 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { signOut } from "next-auth/react"
-import { Plus, Dumbbell, LogOut, Save, Trash2, History, Settings, RefreshCw, Trophy, BarChart3, Play, ExternalLink, ArrowLeftRight, Info, X } from "lucide-react"
+import { useState, useEffect, useMemo } from "react"
+import {
+  Plus, Save, Trash2, Settings, RefreshCw, Play, ExternalLink,
+  ArrowLeftRight, X, ClipboardCopy, Minus, Dumbbell, Trophy,
+  ChevronDown, ChevronUp,
+} from "lucide-react"
 import { toast } from "sonner"
-import Link from "next/link"
+import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { AddCustomExerciseDialog } from "@/components/add-custom-exercise-dialog"
 import { ExerciseReplacementDialog } from "@/components/exercise-replacement-dialog"
 import { DayNavigation } from "@/components/day-navigation"
 import { DaySwapConfirmationDialog } from "@/components/day-swap-confirmation-dialog"
 import { WorkoutStatusIndicator } from "@/components/workout-status-indicator"
+import { WorkoutSummaryBar } from "@/components/workout-summary-bar"
 import { FireStreakIndicator } from "@/components/fire-streak-indicator"
 import { useAuthGuard } from "@/components/auth-guard"
+import { calculatePlates, calculateEpley1RM, isPR, PLATE_COLORS } from "@/lib/workout-utils"
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface Exercise {
-  id: string
-  name: string
-  description?: string
-  muscleGroup: string
-  equipment: string
-  videoUrl?: string
-  userId?: string
+  id: string; name: string; description?: string
+  muscleGroup: string; equipment: string; videoUrl?: string; userId?: string
 }
-
-interface ExerciseSet {
-  id?: string
-  setNumber: number
-  reps: number
-  weightKg: number
-}
-
+interface ExerciseSet { id?: string; setNumber: number; reps: number; weightKg: number }
 interface WorkoutExercise {
-  id?: string
-  exerciseId: string
-  exercise: Exercise
-  isCustom: boolean
-  order: number
-  sets: ExerciseSet[]
-  originalExerciseId?: string
-  originalExerciseName?: string
+  id?: string; exerciseId: string; exercise: Exercise
+  isCustom: boolean; order: number; sets: ExerciseSet[]
+  originalExerciseId?: string; originalExerciseName?: string
 }
-
 interface DaySchedule {
-  id: string
-  dayOfWeek: number
-  name: string
-  exercises: {
-    id: string
-    exerciseId: string
-    exercise: Exercise
-    order: number
-  }[]
+  id: string; dayOfWeek: number; name: string
+  exercises: { id: string; exerciseId: string; exercise: Exercise; order: number }[]
+}
+interface PersonalRecord { exerciseName: string; oneRepMax: number }
+
+// ── Muscle group colour palette ───────────────────────────────────────────────
+
+const MUSCLE_COLORS: Record<string, string> = {
+  Chest: "#ef4444",
+  Back: "#3b82f6",
+  Legs: "#8b5cf6",
+  Quads: "#8b5cf6",
+  Hamstrings: "#a855f7",
+  Glutes: "#d946ef",
+  Shoulders: "#f59e0b",
+  Arms: "#10b981",
+  Biceps: "#10b981",
+  Triceps: "#06b6d4",
+  Core: "#ec4899",
+  Abs: "#ec4899",
+  Cardio: "#0ea5e9",
+  Other: "#6b7280",
 }
 
-const daysOfWeek = [
-  "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
-]
+function getMuscleColor(muscleGroup: string) {
+  for (const [key, color] of Object.entries(MUSCLE_COLORS)) {
+    if (muscleGroup?.toLowerCase().includes(key.toLowerCase())) return color
+  }
+  return MUSCLE_COLORS.Other
+}
+
+const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 export function FlexibleWorkoutDashboard() {
   const { session } = useAuthGuard()
@@ -77,721 +85,374 @@ export function FlexibleWorkoutDashboard() {
   const [workoutStarted, setWorkoutStarted] = useState(false)
   const [showSwapDialog, setShowSwapDialog] = useState(false)
   const [swapLoading, setSwapLoading] = useState(false)
-  const [showSwapInfoBanner, setShowSwapInfoBanner] = useState(true)
+  const [showSwapBanner, setShowSwapBanner] = useState(true)
+  const [personalRecords, setPersonalRecords] = useState<PersonalRecord[]>([])
 
   const today = new Date().getDay()
 
+  const prMap = useMemo(() => {
+    const m = new Map<string, number>()
+    personalRecords.forEach(pr => m.set(pr.exerciseName, pr.oneRepMax))
+    return m
+  }, [personalRecords])
+
+  const prExerciseNames = useMemo(() => {
+    const s = new Set<string>()
+    for (const ex of workoutExercises)
+      for (const set of ex.sets)
+        if (set.reps > 0 && set.weightKg > 0 && isPR(calculateEpley1RM(set.weightKg, set.reps), prMap.get(ex.exercise.name)))
+          s.add(ex.exercise.name)
+    return s
+  }, [workoutExercises, prMap])
+
+  const groupedExercises = useMemo(() => {
+    const g: Record<string, { ex: WorkoutExercise; idx: number }[]> = {}
+    workoutExercises.forEach((ex, idx) => {
+      const group = ex.exercise.muscleGroup || "Other"
+      ;(g[group] ??= []).push({ ex, idx })
+    })
+    return g
+  }, [workoutExercises])
+
   useEffect(() => {
     fetchWeeklySchedule()
-
-    // Check if user has dismissed the swap info banner
-    const bannerDismissed = localStorage.getItem('swapInfoBannerDismissed')
-    if (bannerDismissed === 'true') {
-      setShowSwapInfoBanner(false)
-    }
+    fetchPersonalRecords()
+    const dismissed = localStorage.getItem("swapInfoBannerDismissed")
+    if (dismissed === "true") setShowSwapBanner(false)
+    const handler = () => fetchPersonalRecords()
+    window.addEventListener("workoutSaved", handler)
+    return () => window.removeEventListener("workoutSaved", handler)
   }, [])
 
-  useEffect(() => {
-    fetchDaySchedule(selectedDay)
-  }, [selectedDay])
+  useEffect(() => { fetchDaySchedule(selectedDay) }, [selectedDay])
+
+  const fetchPersonalRecords = async () => {
+    try {
+      const res = await fetch("/api/analytics")
+      if (res.ok) setPersonalRecords((await res.json()).personalRecords ?? [])
+    } catch { /* non-critical */ }
+  }
 
   const fetchWeeklySchedule = async () => {
     try {
-      const response = await fetch('/api/schedule/weekly')
-      if (response.ok) {
-        const data = await response.json()
-        setWeeklySchedule(data.schedule || [])
-      }
-    } catch (error) {
-      console.error("Failed to load weekly schedule:", error)
-      toast.error("Failed to load weekly schedule")
-    } finally {
-      setLoading(false)
-    }
+      const res = await fetch("/api/schedule/weekly")
+      if (res.ok) setWeeklySchedule((await res.json()).schedule ?? [])
+    } catch { toast.error("Failed to load schedule") }
+    finally { setLoading(false) }
   }
 
-  const fetchDaySchedule = async (dayOfWeek: number) => {
+  const fetchDaySchedule = async (day: number) => {
     setDayLoading(true)
     try {
-      const response = await fetch(`/api/schedule/day/${dayOfWeek}`)
-      if (response.ok) {
-        const data = await response.json()
+      const res = await fetch(`/api/schedule/day/${day}`)
+      if (res.ok) {
+        const data = await res.json()
         setCurrentDaySchedule(data.schedule)
-        
-        // Initialize workout exercises with admin-assigned exercises
-        if (data.schedule?.exercises) {
-          const initialExercises: WorkoutExercise[] = data.schedule.exercises.map((ex: { exerciseId: string; exercise: Exercise; order: number }) => ({
-            exerciseId: ex.exerciseId,
-            exercise: ex.exercise,
-            isCustom: false,
-            order: ex.order,
-            sets: [{ setNumber: 1, reps: 0, weightKg: 0 }]
-          }))
-          setWorkoutExercises(initialExercises)
-        } else {
-          setWorkoutExercises([])
-        }
+        setWorkoutExercises(
+          data.schedule?.exercises?.map((ex: { exerciseId: string; exercise: Exercise; order: number }) => ({
+            exerciseId: ex.exerciseId, exercise: ex.exercise,
+            isCustom: false, order: ex.order,
+            sets: [{ setNumber: 1, reps: 0, weightKg: 0 }],
+          })) ?? []
+        )
       }
-    } catch (error) {
-      console.error("Failed to load day schedule:", error)
-      toast.error("Failed to load day schedule")
-    } finally {
-      setDayLoading(false)
-    }
+    } catch { toast.error("Failed to load day schedule") }
+    finally { setDayLoading(false) }
   }
 
-  const handleDaySelect = (dayOfWeek: number) => {
-    setSelectedDay(dayOfWeek)
-    setWorkoutStarted(false) // Reset workout status when switching days
-  }
-
-  const handleAddSet = (exerciseIndex: number) => {
+  const handleAddSet = (i: number) =>
     setWorkoutExercises(prev => {
-      const updated = [...prev]
-      const currentSets = updated[exerciseIndex].sets
-      const newSetNumber = currentSets.length + 1
-      updated[exerciseIndex].sets.push({
-        setNumber: newSetNumber,
-        reps: 0,
-        weightKg: 0
-      })
-      return updated
+      const u = [...prev]
+      u[i].sets.push({ setNumber: u[i].sets.length + 1, reps: 0, weightKg: 0 })
+      return u
     })
-  }
 
-  const handleRemoveSet = (exerciseIndex: number, setIndex: number) => {
+  const handleRemoveSet = (ei: number, si: number) =>
     setWorkoutExercises(prev => {
-      const updated = [...prev]
-      updated[exerciseIndex].sets.splice(setIndex, 1)
-      // Renumber the remaining sets
-      updated[exerciseIndex].sets.forEach((set, index) => {
-        set.setNumber = index + 1
-      })
-      return updated
+      const u = [...prev]
+      u[ei].sets.splice(si, 1)
+      u[ei].sets.forEach((s, i) => { s.setNumber = i + 1 })
+      return u
     })
-  }
 
-  const handleSetChange = (exerciseIndex: number, setIndex: number, field: 'reps' | 'weightKg', value: number) => {
+  const handleSetChange = (ei: number, si: number, field: "reps" | "weightKg", val: number) =>
     setWorkoutExercises(prev => {
-      const updated = [...prev]
-      updated[exerciseIndex].sets[setIndex][field] = value
-      return updated
+      const u = [...prev]
+      u[ei].sets[si][field] = Math.max(0, val)
+      return u
     })
-  }
 
-  const handleRemoveExercise = (exerciseIndex: number) => {
-    setWorkoutExercises(prev => prev.filter((_, index) => index !== exerciseIndex))
-  }
+  const handleRemoveExercise = (i: number) =>
+    setWorkoutExercises(prev => prev.filter((_, idx) => idx !== i))
 
-  const handleReplaceExercise = (exerciseIndex: number) => {
-    const exercise = workoutExercises[exerciseIndex].exercise
-    setExerciseToReplace({ index: exerciseIndex, exercise })
+  const handleReplaceExercise = (i: number) => {
+    setExerciseToReplace({ index: i, exercise: workoutExercises[i].exercise })
     setIsReplacementDialogOpen(true)
   }
 
-  const handleExerciseReplaced = (newExercise: Exercise) => {
-    if (exerciseToReplace) {
-      setWorkoutExercises(prev => {
-        const updated = [...prev]
-        const originalExercise = updated[exerciseToReplace.index].exercise
-        updated[exerciseToReplace.index] = {
-          ...updated[exerciseToReplace.index],
-          exercise: newExercise,
-          exerciseId: newExercise.id,
-          isCustom: !!newExercise.userId,
-          originalExerciseId: originalExercise.id,
-          originalExerciseName: originalExercise.name
-        }
-        return updated
-      })
-      setExerciseToReplace(null)
-      setIsReplacementDialogOpen(false)
-    }
+  const handleExerciseReplaced = (newEx: Exercise) => {
+    if (!exerciseToReplace) return
+    setWorkoutExercises(prev => {
+      const u = [...prev]
+      const orig = u[exerciseToReplace.index].exercise
+      u[exerciseToReplace.index] = {
+        ...u[exerciseToReplace.index],
+        exercise: newEx, exerciseId: newEx.id,
+        isCustom: !!newEx.userId,
+        originalExerciseId: orig.id, originalExerciseName: orig.name,
+      }
+      return u
+    })
+    setExerciseToReplace(null)
+    setIsReplacementDialogOpen(false)
   }
 
-  const handleAddCustomExercise = (exercise: Exercise) => {
-    const newWorkoutExercise: WorkoutExercise = {
-      exerciseId: exercise.id,
-      exercise,
-      isCustom: true,
-      order: workoutExercises.length + 1,
-      sets: [{ setNumber: 1, reps: 0, weightKg: 0 }]
-    }
-    setWorkoutExercises(prev => [...prev, newWorkoutExercise])
+  const handleAddCustomExercise = (ex: Exercise) => {
+    setWorkoutExercises(prev => [...prev, {
+      exerciseId: ex.id, exercise: ex, isCustom: true,
+      order: prev.length + 1, sets: [{ setNumber: 1, reps: 0, weightKg: 0 }],
+    }])
     setIsAddDialogOpen(false)
   }
 
-  const handleStartWorkout = () => {
-    if (workoutExercises.length === 0) {
-      toast.error("No exercises available for this day. Add some exercises to get started!")
-      return
-    }
-
-    // Check if we need to swap days (starting a different day's workout)
-    if (selectedDay !== today) {
-      setShowSwapDialog(true)
-      return
-    }
-
-    // Starting today's workout - no swap needed
-    setWorkoutStarted(true)
-    toast.success(`Starting ${currentDaySchedule?.name || daysOfWeek[selectedDay]} workout! 💪`)
+  const handleCopyLastSession = async (exerciseId: string, exerciseName: string, idx: number) => {
+    try {
+      const res = await fetch("/api/workout/history")
+      if (!res.ok) throw new Error()
+      const { workoutLogs } = await res.json()
+      for (const log of workoutLogs) {
+        const match = log.workoutExercises.find(
+          (we: { exercise: { id: string; name: string }; sets: ExerciseSet[] }) =>
+            we.exercise?.id === exerciseId || we.exercise?.name === exerciseName
+        )
+        if (match?.sets?.length) {
+          setWorkoutExercises(prev => {
+            const u = [...prev]
+            u[idx].sets = match.sets.map((s: ExerciseSet, i: number) => ({
+              setNumber: i + 1, reps: s.reps, weightKg: s.weightKg,
+            }))
+            return u
+          })
+          toast.success(`Loaded last session (${format(new Date(log.date), "MMM d")})`)
+          return
+        }
+      }
+      toast.info("No previous session found")
+    } catch { toast.error("Failed to load previous session") }
   }
 
-  const handleDismissSwapInfoBanner = () => {
-    setShowSwapInfoBanner(false)
-    localStorage.setItem('swapInfoBannerDismissed', 'true')
+  const handleStartWorkout = () => {
+    if (workoutExercises.length === 0) { toast.error("Add exercises first!"); return }
+    if (selectedDay !== today) { setShowSwapDialog(true); return }
+    setWorkoutStarted(true)
+    toast.success(`${currentDaySchedule?.name || DAYS[selectedDay]} started! 💪`)
   }
 
   const handleConfirmDaySwap = async () => {
     setSwapLoading(true)
-
     try {
-      const response = await fetch("/api/schedule/swap-days", {
+      const res = await fetch("/api/schedule/swap-days", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fromDay: selectedDay,
-          toDay: today,
-          userId: session?.user?.id
-        })
+        body: JSON.stringify({ fromDay: selectedDay, toDay: today, userId: session?.user?.id }),
       })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || result.details || "Failed to swap days")
-      }
-
-      // Update local state
+      const result = await res.json()
+      if (!res.ok) throw new Error(result.error || "Failed to swap days")
       setWorkoutStarted(true)
       setShowSwapDialog(false)
-
-      // Refresh the weekly schedule and current day
-      await Promise.all([
-        fetchWeeklySchedule(),
-        fetchDaySchedule(selectedDay)
-      ])
-
-      toast.success(
-        `Days swapped! ${daysOfWeek[today]} is now ${result.swappedDays.fromDayName} and ${daysOfWeek[selectedDay]} is now ${result.swappedDays.toDayName}. Starting workout! 💪`
-      )
-
-    } catch (error) {
-      console.error("Error swapping days:", error)
-      toast.error(error instanceof Error ? error.message : "Failed to swap workout days")
-    } finally {
-      setSwapLoading(false)
-    }
+      await Promise.all([fetchWeeklySchedule(), fetchDaySchedule(selectedDay)])
+      toast.success("Days swapped! Starting workout 💪")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to swap days")
+    } finally { setSwapLoading(false) }
   }
 
   const handleSaveWorkout = async () => {
     setSaving(true)
-    
     try {
-      // Filter out exercises with no completed sets
-      const completedExercises = workoutExercises.filter(ex => 
-        ex.sets.some(set => set.reps > 0 && set.weightKg > 0)
-      )
-
-      if (completedExercises.length === 0) {
-        toast.error("Please complete at least one set before saving")
-        setSaving(false)
-        return
-      }
-
-      const response = await fetch("/api/workout/save", {
+      const completed = workoutExercises.filter(ex => ex.sets.some(s => s.reps > 0 && s.weightKg > 0))
+      if (!completed.length) { toast.error("Complete at least one set first"); setSaving(false); return }
+      const res = await fetch("/api/workout/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          dayOfWeek: selectedDay,
-          exercises: completedExercises
-        })
+        body: JSON.stringify({ dayOfWeek: selectedDay, exercises: completed }),
       })
-
-      if (response.ok) {
-        toast.success("Workout saved successfully! 🎉")
-        // Reset the workout
+      if (res.ok) {
+        toast.success("Workout saved! 🎉")
         fetchDaySchedule(selectedDay)
-        // Trigger streak refresh
-        window.dispatchEvent(new CustomEvent('workoutSaved'))
-      } else {
-        toast.error("Failed to save workout")
-      }
-    } catch {
-      toast.error("Failed to save workout")
-    } finally {
-      setSaving(false)
-    }
+        window.dispatchEvent(new CustomEvent("workoutSaved"))
+      } else toast.error("Failed to save workout")
+    } catch { toast.error("Failed to save workout") }
+    finally { setSaving(false) }
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-lg">Loading workout schedule...</div>
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <Dumbbell className="h-8 w-8 animate-bounce" style={{ color: "var(--primary)" }} />
+        <p className="text-sm" style={{ color: "var(--muted-foreground)" }}>Loading your workout…</p>
       </div>
-    )
+    </div>
+  )
+
+  const greeting = () => {
+    const h = new Date().getHours()
+    if (h < 12) return "Good morning"
+    if (h < 17) return "Good afternoon"
+    return "Good evening"
   }
+
+  const hasData = workoutExercises.some(ex => ex.sets.some(s => s.reps > 0 && s.weightKg > 0))
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile-friendly header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
-          <div className="mobile-header flex justify-between items-center min-h-[56px] sm:h-16">
-            <div className="flex items-center space-x-2 min-w-0 flex-1">
-              <Dumbbell className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 flex-shrink-0" />
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
-                      <span className="hidden sm:inline">Siddhant&apos;s Workout Plan</span>
-                      <span className="sm:hidden">Workout Plan</span>
-                    </h1>
-                    <p className="text-xs text-gray-500">
-                      {selectedDay === today ? "Today" : daysOfWeek[selectedDay]}
-                    </p>
-                  </div>
-                  {/* Mobile Fire Streak Indicator */}
-                  <FireStreakIndicator className="sm:hidden flex-shrink-0" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="mobile-nav flex items-center space-x-1 sm:space-x-2">
-              {/* Fire Streak Indicator */}
-              <FireStreakIndicator className="hidden sm:flex" />
+    <div className="min-h-screen">
+      <div className="max-w-2xl mx-auto px-4 pt-5 pb-6">
 
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm" className="mobile-nav-button h-11 w-11 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 touch-manipulation">
-                  <BarChart3 className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Dashboard</span>
-                </Button>
-              </Link>
-
-              <Link href="/leaderboard">
-                <Button variant="ghost" size="sm" className="mobile-nav-button h-11 w-11 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 touch-manipulation">
-                  <Trophy className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">Leaderboard</span>
-                </Button>
-              </Link>
-
-              <Link href="/history">
-                <Button variant="ghost" size="sm" className="mobile-nav-button h-11 w-11 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 touch-manipulation">
-                  <History className="h-4 w-4" />
-                  <span className="hidden sm:inline ml-2">History</span>
-                </Button>
-              </Link>
-
-              {session?.user?.role === "ADMIN" && (
-                <Link href="/admin/schedule">
-                  <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2 text-blue-600 hover:text-blue-700">
-                    <Settings className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-2">Admin</span>
-                  </Button>
-                </Link>
-              )}
-
-              <span className="hidden sm:inline text-sm text-gray-600">
-                {session?.user?.name}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => signOut()}
-                className="h-10 w-10 sm:h-8 sm:w-auto sm:px-3 p-0 sm:p-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Sign Out</span>
-              </Button>
-            </div>
+        {/* ── Hero header ── */}
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <p className="text-sm font-medium mb-0.5" style={{ color: "var(--muted-foreground)" }}>
+              {greeting()}, {session?.user?.name?.split(" ")[0] ?? "Athlete"} 👋
+            </p>
+            <h1 className="text-2xl font-black tracking-tight">
+              {currentDaySchedule?.name ?? `${DAYS[selectedDay]} Workout`}
+            </h1>
+            <p className="text-xs mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+              {format(new Date(), "EEEE, MMMM d")}
+              {selectedDay !== today && <span className="ml-1 text-primary"> · Viewing {DAYS[selectedDay]}</span>}
+            </p>
           </div>
+          <FireStreakIndicator />
         </div>
-      </div>
 
-      <div className="mobile-container max-w-4xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
-        {/* Day Navigation */}
+        {/* ── Day navigation ── */}
         <DayNavigation
           selectedDay={selectedDay}
-          onDaySelect={handleDaySelect}
+          onDaySelect={(d) => { setSelectedDay(d); setWorkoutStarted(false) }}
           weeklySchedule={weeklySchedule}
           loading={dayLoading}
-          className="mb-6"
+          className="mb-5"
         />
 
-        {/* Day Swapping Info Banner */}
-        {showSwapInfoBanner && (
-          <Card className="mb-6 bg-blue-50 border-blue-200 mobile-card">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-start space-x-2 sm:space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="p-1 bg-blue-100 rounded-full">
-                    <ArrowLeftRight className="h-4 w-4 text-blue-600" />
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1">
-                      <h4 className="text-sm font-medium text-blue-900 mb-1">
-                        💡 Day Swapping Feature
-                      </h4>
-                      <div className="text-xs sm:text-sm text-blue-800 space-y-1">
-                        <p>
-                          Want to do a different day's workout today? Simply select any day above and click "Start Workout".
-                        </p>
-                        <p>
-                          You'll be prompted to <strong>permanently swap</strong> the workout schedules between the selected day and today.
-                        </p>
-                        <p className="text-xs text-blue-700 mt-2">
-                          This is perfect for adjusting your routine when your schedule changes!
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleDismissSwapInfoBanner}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-100 p-1 h-auto flex-shrink-0 touch-manipulation"
-                      title="Dismiss this tip"
-                    >
-                      <X className="h-3 w-3 sm:h-4 sm:w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* ── Start / progress bar ── */}
+        {!dayLoading && (
+          <WorkoutStatusIndicator
+            status={workoutStarted ? "in_progress" : "not_started"}
+            onStartWorkout={handleStartWorkout}
+            workoutName={currentDaySchedule?.name}
+            exerciseCount={workoutExercises.length}
+            completedSets={workoutExercises.reduce((t, ex) => t + ex.sets.filter(s => s.reps > 0 && s.weightKg > 0).length, 0)}
+            totalSets={workoutExercises.reduce((t, ex) => t + ex.sets.length, 0)}
+            disabled={dayLoading || swapLoading}
+            className="mb-5"
+          />
         )}
 
-        {/* Current Day Header */}
-        <div className="mb-6">
-          <div className="flex flex-col space-y-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                {currentDaySchedule?.name || `${daysOfWeek[selectedDay]} Workout`}
-              </h2>
-              <p className="text-gray-600">
-                {selectedDay === today
-                  ? "Complete your scheduled exercises and add your own if needed"
-                  : "Preview or start this day's workout"
-                }
-              </p>
-            </div>
-
-            {/* Workout Status Indicator */}
-            <WorkoutStatusIndicator
-              status={workoutStarted ? "in_progress" : "not_started"}
-              onStartWorkout={handleStartWorkout}
-              workoutName={currentDaySchedule?.name}
-              exerciseCount={workoutExercises.length}
-              completedSets={workoutExercises.reduce((total, ex) =>
-                total + ex.sets.filter(set => set.reps > 0 && set.weightKg > 0).length, 0
-              )}
-              totalSets={workoutExercises.reduce((total, ex) => total + ex.sets.length, 0)}
-              disabled={dayLoading || swapLoading}
-            />
+        {/* ── Day swap banner ── */}
+        {showSwapBanner && (
+          <div
+            className="flex items-start gap-3 rounded-2xl p-3 mb-5"
+            style={{ background: "oklch(0.62 0.19 244 / 10%)", border: "1px solid oklch(0.62 0.19 244 / 25%)" }}
+          >
+            <ArrowLeftRight className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "var(--primary)" }} />
+            <p className="text-xs flex-1" style={{ color: "var(--muted-foreground)" }}>
+              Select any day and tap &quot;Start Workout&quot; to permanently swap it with today.
+            </p>
+            <button onClick={() => { setShowSwapBanner(false); localStorage.setItem("swapInfoBannerDismissed","true") }}
+              className="p-0.5 rounded touch-manipulation" style={{ color: "var(--muted-foreground)" }}>
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
-        </div>
+        )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 sm:gap-3 mb-4 sm:mb-6">
-          <Link href="/dashboard">
-            <Button
-              variant="outline"
-              size="sm"
-              className="mobile-button gap-2 text-purple-600 hover:text-purple-700 border-purple-200 hover:border-purple-300 hover:bg-purple-50 touch-manipulation"
-            >
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </Button>
-          </Link>
-
-          <Button
-            onClick={() => setIsAddDialogOpen(true)}
-            variant="outline"
-            size="sm"
-            className="mobile-button gap-2 touch-manipulation"
-          >
-            <Plus className="h-4 w-4" />
-            Add Exercise
+        {/* ── Action bar ── */}
+        <div className="flex gap-2 mb-5">
+          <Button variant="outline" size="sm" onClick={() => setIsAddDialogOpen(true)} className="gap-1.5 flex-1 h-10 touch-manipulation">
+            <Plus className="h-4 w-4" />Add Exercise
           </Button>
-
-          <Button
-            onClick={() => fetchDaySchedule(selectedDay)}
-            variant="outline"
-            size="sm"
-            className="mobile-button gap-2 touch-manipulation"
-            disabled={dayLoading}
-          >
-            <RefreshCw className={`h-4 w-4 ${dayLoading ? 'animate-spin' : ''}`} />
-            Refresh
+          <Button variant="outline" size="sm" onClick={() => fetchDaySchedule(selectedDay)} disabled={dayLoading} className="h-10 w-10 p-0 touch-manipulation">
+            <RefreshCw className={`h-4 w-4 ${dayLoading ? "animate-spin" : ""}`} />
           </Button>
-
-          {workoutExercises.some(ex => ex.sets.some(set => set.reps > 0 && set.weightKg > 0)) && (
-            <Button
-              onClick={handleSaveWorkout}
-              disabled={saving}
-              className="gap-2 bg-blue-600 hover:bg-blue-700"
-            >
+          {hasData && (
+            <Button size="sm" onClick={handleSaveWorkout} disabled={saving} className="gap-1.5 flex-1 h-10 touch-manipulation"
+              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
               <Save className="h-4 w-4" />
-              {saving ? "Saving..." : "Save Workout"}
+              {saving ? "Saving…" : "Save"}
             </Button>
           )}
         </div>
 
-        {/* Loading State */}
+        {/* ── Loading skeleton ── */}
         {dayLoading && (
-          <Card>
-            <CardContent className="py-8 text-center">
-              <div className="text-gray-500">Loading exercises...</div>
-            </CardContent>
-          </Card>
+          <div className="space-y-3">
+            {[1,2,3].map(i => (
+              <div key={i} className="h-24 rounded-2xl animate-pulse" style={{ background: "var(--card)" }} />
+            ))}
+          </div>
         )}
 
-        {/* Exercise List */}
-        {!dayLoading && (
-          <div className="space-y-4">
-            {workoutExercises.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <p className="text-gray-500 mb-4">
-                    No exercises scheduled for {daysOfWeek[selectedDay]}.
-                  </p>
-                  <Button
-                    onClick={() => setIsAddDialogOpen(true)}
-                    className="gap-2"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Your First Exercise
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                {/* Exercise Summary */}
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-blue-900">
-                          {workoutExercises.length} Exercise{workoutExercises.length !== 1 ? 's' : ''} Scheduled
-                        </h3>
-                        <p className="text-sm text-blue-700">
-                          {selectedDay === today
-                            ? "Ready to start your workout!"
-                            : "Preview mode - you can still start this workout"
-                          }
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-blue-700">
-                          Muscle Groups:
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {Array.from(new Set(workoutExercises.map(ex => ex.exercise.muscleGroup))).map(muscle => (
-                            <Badge key={muscle} variant="outline" className="text-xs bg-blue-100 text-blue-800">
-                              {muscle}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
+        {/* ── Empty state ── */}
+        {!dayLoading && workoutExercises.length === 0 && (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <div className="h-16 w-16 rounded-2xl flex items-center justify-center"
+              style={{ background: "var(--muted)" }}>
+              <Dumbbell className="h-8 w-8 opacity-30" style={{ color: "var(--foreground)" }} />
+            </div>
+            <div>
+              <p className="font-semibold">No exercises for {DAYS[selectedDay]}</p>
+              <p className="text-sm mt-1" style={{ color: "var(--muted-foreground)" }}>Add exercises to build your workout</p>
+            </div>
+            <Button onClick={() => setIsAddDialogOpen(true)} className="gap-2 mt-2"
+              style={{ background: "var(--primary)", color: "var(--primary-foreground)" }}>
+              <Plus className="h-4 w-4" />Add First Exercise
+            </Button>
+          </div>
+        )}
 
-            {/* Individual Exercises */}
-            {workoutExercises.length > 0 && (
-              workoutExercises.map((workoutExercise, exerciseIndex) => (
-                <Card key={`${workoutExercise.exerciseId}-${exerciseIndex}`} className="workout-exercise-card mobile-card">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="flex items-center space-x-2">
-                          <span className="truncate">{workoutExercise.exercise.name}</span>
-                          {workoutExercise.isCustom && (
-                            <Badge variant="secondary" className="text-xs">
-                              Custom
-                            </Badge>
-                          )}
-                          {workoutExercise.originalExerciseName && (
-                            <Badge variant="outline" className="text-xs">
-                              Replaced {workoutExercise.originalExerciseName}
-                            </Badge>
-                          )}
-                        </CardTitle>
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          <Badge variant="outline" className="text-xs">
-                            {workoutExercise.exercise.muscleGroup}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs">
-                            {workoutExercise.exercise.equipment}
-                          </Badge>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-1 sm:space-x-2">
-                        {/* Video Link Button */}
-                        {workoutExercise.exercise.videoUrl && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => window.open(workoutExercise.exercise.videoUrl, '_blank')}
-                            className="text-green-600 hover:text-green-700 h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation"
-                            title="Watch exercise video"
-                          >
-                            <Play className="h-4 w-4" />
-                          </Button>
-                        )}
+        {/* ── Exercise list grouped by muscle ── */}
+        {!dayLoading && workoutExercises.length > 0 && (
+          <div className="space-y-2">
+            {Object.entries(groupedExercises).map(([muscleGroup, exercises]) => (
+              <div key={muscleGroup}>
+                {/* Section header */}
+                <div className="flex items-center gap-2 px-1 mb-2 mt-4 first:mt-0">
+                  <div className="h-2 w-2 rounded-full flex-shrink-0"
+                    style={{ background: getMuscleColor(muscleGroup) }} />
+                  <span className="text-[11px] font-bold uppercase tracking-widest"
+                    style={{ color: "var(--muted-foreground)" }}>
+                    {muscleGroup}
+                  </span>
+                  <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
+                </div>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleReplaceExercise(exerciseIndex)}
-                          className="text-blue-600 hover:text-blue-700 h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation"
-                        >
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleRemoveExercise(exerciseIndex)}
-                          className="text-red-600 hover:text-red-700 h-11 w-11 sm:h-8 sm:w-8 p-0 touch-manipulation"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  {/* Exercise Description and Video Link */}
-                  {(workoutExercise.exercise.description || workoutExercise.exercise.videoUrl) && (
-                    <div className="px-6 pb-4 border-b">
-                      {workoutExercise.exercise.description && (
-                        <p className="text-sm text-gray-600 mb-3">
-                          {workoutExercise.exercise.description}
-                        </p>
-                      )}
-                      {workoutExercise.exercise.videoUrl && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(workoutExercise.exercise.videoUrl, '_blank')}
-                          className="gap-2 text-green-600 border-green-200 hover:bg-green-50"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                          Watch Exercise Video
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  <CardContent>
-                    {/* Sets */}
-                    <div className="space-y-3">
-                      {/* Desktop Header */}
-                      <div className="hidden sm:grid grid-cols-4 gap-2 text-sm font-medium text-gray-700 mb-2">
-                        <span>Set</span>
-                        <span>Reps</span>
-                        <span>Weight (kg)</span>
-                        <span></span>
-                      </div>
-
-                      {workoutExercise.sets.map((set, setIndex) => (
-                        <div key={setIndex}>
-                          {/* Desktop Layout */}
-                          <div className="hidden sm:grid grid-cols-4 gap-2 items-center">
-                            <span className="text-sm text-gray-600">{set.setNumber}</span>
-                            <Input
-                              type="number"
-                              placeholder="0"
-                              value={set.reps || ''}
-                              onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-                              className="mobile-input h-11 sm:h-10"
-                            />
-                            <Input
-                              type="number"
-                              step="0.5"
-                              placeholder="0"
-                              value={set.weightKg || ''}
-                              onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weightKg', parseFloat(e.target.value) || 0)}
-                              className="mobile-input h-11 sm:h-10"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
-                              className="h-10 w-10 p-0 text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-
-                          {/* Mobile Layout */}
-                          <div className="sm:hidden bg-gray-50 rounded-lg p-3 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">Set {set.setNumber}</span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveSet(exerciseIndex, setIndex)}
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="text-xs font-medium text-gray-600 block mb-1">Reps</label>
-                                <Input
-                                  type="number"
-                                  placeholder="0"
-                                  value={set.reps || ''}
-                                  onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'reps', parseInt(e.target.value) || 0)}
-                                  className="h-12 text-center text-lg"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-xs font-medium text-gray-600 block mb-1">Weight (kg)</label>
-                                <Input
-                                  type="number"
-                                  step="0.5"
-                                  placeholder="0"
-                                  value={set.weightKg || ''}
-                                  onChange={(e) => handleSetChange(exerciseIndex, setIndex, 'weightKg', parseFloat(e.target.value) || 0)}
-                                  className="h-12 text-center text-lg"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      
-                      <Button
-                        variant="outline"
-                        onClick={() => handleAddSet(exerciseIndex)}
-                        className="w-full mt-3 h-12 sm:h-10 font-medium"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Set
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                <div className="space-y-2">
+                  {exercises.map(({ ex, idx }) => (
+                    <ExerciseCard
+                      key={`${ex.exerciseId}-${idx}`}
+                      workoutExercise={ex}
+                      exerciseIndex={idx}
+                      prMap={prMap}
+                      muscleColor={getMuscleColor(ex.exercise.muscleGroup)}
+                      onAddSet={handleAddSet}
+                      onRemoveSet={handleRemoveSet}
+                      onSetChange={handleSetChange}
+                      onRemoveExercise={handleRemoveExercise}
+                      onReplaceExercise={handleReplaceExercise}
+                      onCopyLastSession={handleCopyLastSession}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Dialogs */}
-      <AddCustomExerciseDialog
-        open={isAddDialogOpen}
-        onOpenChange={setIsAddDialogOpen}
-        onExerciseAdded={handleAddCustomExercise}
-      />
+      {/* Sticky summary bar */}
+      <WorkoutSummaryBar workoutExercises={workoutExercises} prExerciseNames={prExerciseNames} />
 
+      {/* Dialogs */}
+      <AddCustomExerciseDialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen} onExerciseAdded={handleAddCustomExercise} />
       {exerciseToReplace && (
         <ExerciseReplacementDialog
           open={isReplacementDialogOpen}
@@ -800,18 +461,245 @@ export function FlexibleWorkoutDashboard() {
           onExerciseReplaced={handleExerciseReplaced}
         />
       )}
-
-      {/* Day Swap Confirmation Dialog */}
       <DaySwapConfirmationDialog
         open={showSwapDialog}
         onOpenChange={setShowSwapDialog}
         fromDay={selectedDay}
         toDay={today}
-        fromDayName={currentDaySchedule?.name || daysOfWeek[selectedDay]}
-        toDayName={weeklySchedule.find(s => s.dayOfWeek === today)?.name || daysOfWeek[today]}
+        fromDayName={currentDaySchedule?.name || DAYS[selectedDay]}
+        toDayName={weeklySchedule.find(s => s.dayOfWeek === today)?.name || DAYS[today]}
         onConfirm={handleConfirmDaySwap}
         loading={swapLoading}
       />
+    </div>
+  )
+}
+
+// ── Exercise card ─────────────────────────────────────────────────────────────
+
+interface ExerciseCardProps {
+  workoutExercise: WorkoutExercise
+  exerciseIndex: number
+  prMap: Map<string, number>
+  muscleColor: string
+  onAddSet: (i: number) => void
+  onRemoveSet: (ei: number, si: number) => void
+  onSetChange: (ei: number, si: number, field: "reps" | "weightKg", val: number) => void
+  onRemoveExercise: (i: number) => void
+  onReplaceExercise: (i: number) => void
+  onCopyLastSession: (id: string, name: string, i: number) => void
+}
+
+function ExerciseCard({
+  workoutExercise, exerciseIndex, prMap, muscleColor,
+  onAddSet, onRemoveSet, onSetChange,
+  onRemoveExercise, onReplaceExercise, onCopyLastSession,
+}: ExerciseCardProps) {
+  const [expanded, setExpanded] = useState(true)
+  const completedSets = workoutExercise.sets.filter(s => s.reps > 0 && s.weightKg > 0).length
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden transition-all duration-200"
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--border)",
+        borderLeft: `3px solid ${muscleColor}`,
+      }}
+    >
+      {/* Card header */}
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div
+          className="h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-black"
+          style={{ background: `${muscleColor}20`, color: muscleColor }}
+        >
+          {workoutExercise.exercise.name[0].toUpperCase()}
+        </div>
+
+        <div className="flex-1 min-w-0" onClick={() => setExpanded(e => !e)}>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <p className="font-bold text-sm truncate">{workoutExercise.exercise.name}</p>
+            {workoutExercise.isCustom && (
+              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">Custom</Badge>
+            )}
+            {workoutExercise.originalExerciseName && (
+              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 text-orange-400 border-orange-400/40">
+                Replaced
+              </Badge>
+            )}
+          </div>
+          <p className="text-[11px] mt-0.5" style={{ color: "var(--muted-foreground)" }}>
+            {workoutExercise.exercise.equipment}
+            {completedSets > 0 && (
+              <span className="ml-2 font-semibold" style={{ color: muscleColor }}>
+                {completedSets}/{workoutExercise.sets.length} sets
+              </span>
+            )}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          <button onClick={() => onCopyLastSession(workoutExercise.exerciseId, workoutExercise.exercise.name, exerciseIndex)}
+            className="h-8 w-8 rounded-lg flex items-center justify-center touch-manipulation hover:bg-white/5 transition-colors"
+            title="Copy last session" style={{ color: "var(--muted-foreground)" }}>
+            <ClipboardCopy className="h-3.5 w-3.5" />
+          </button>
+          {workoutExercise.exercise.videoUrl && (
+            <button onClick={() => window.open(workoutExercise.exercise.videoUrl, "_blank")}
+              className="h-8 w-8 rounded-lg flex items-center justify-center touch-manipulation hover:bg-white/5 transition-colors text-emerald-500">
+              <Play className="h-3.5 w-3.5" />
+            </button>
+          )}
+          <button onClick={() => onReplaceExercise(exerciseIndex)}
+            className="h-8 w-8 rounded-lg flex items-center justify-center touch-manipulation hover:bg-white/5 transition-colors"
+            style={{ color: "var(--primary)" }}>
+            <Settings className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => onRemoveExercise(exerciseIndex)}
+            className="h-8 w-8 rounded-lg flex items-center justify-center touch-manipulation hover:bg-white/5 transition-colors text-destructive">
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setExpanded(e => !e)}
+            className="h-8 w-8 rounded-lg flex items-center justify-center touch-manipulation hover:bg-white/5 transition-colors"
+            style={{ color: "var(--muted-foreground)" }}>
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Collapsible sets section */}
+      {expanded && (
+        <div className="px-4 pb-4 space-y-2" style={{ borderTop: "1px solid var(--border)" }}>
+          {/* Column labels */}
+          <div className="grid grid-cols-[32px_1fr_1fr_32px] gap-2 pt-3 px-1">
+            {["Set","Reps","kg",""].map((h, i) => (
+              <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-center"
+                style={{ color: "var(--muted-foreground)" }}>{h}</span>
+            ))}
+          </div>
+
+          {workoutExercise.sets.map((set, setIndex) => {
+            const current1RM = set.reps > 0 && set.weightKg > 0 ? calculateEpley1RM(set.weightKg, set.reps) : 0
+            const newPR = current1RM > 0 && isPR(current1RM, prMap.get(workoutExercise.exercise.name))
+            const plateResult = set.weightKg > 20 ? calculatePlates(set.weightKg) : null
+            const done = set.reps > 0 && set.weightKg > 0
+
+            return (
+              <div key={setIndex}>
+                <div
+                  className="grid grid-cols-[32px_1fr_1fr_32px] gap-2 items-center p-2 rounded-xl transition-all duration-150"
+                  style={{ background: done ? `${muscleColor}10` : "oklch(1 0 0 / 3%)" }}
+                >
+                  {/* Set number */}
+                  <div className="flex items-center justify-center">
+                    <span
+                      className="text-xs font-black h-6 w-6 rounded-full flex items-center justify-center"
+                      style={done ? { background: muscleColor, color: "#fff" } : { color: "var(--muted-foreground)" }}
+                    >
+                      {set.setNumber}
+                    </span>
+                  </div>
+
+                  {/* Reps stepper */}
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      onClick={() => onSetChange(exerciseIndex, setIndex, "reps", set.reps - 1)}
+                      className="h-9 w-9 rounded-lg flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                      style={{ background: "var(--muted)" }}>
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="w-8 text-center font-black text-base tabular-nums">{set.reps}</span>
+                    <button
+                      onClick={() => onSetChange(exerciseIndex, setIndex, "reps", set.reps + 1)}
+                      className="h-9 w-9 rounded-lg flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                      style={{ background: "var(--muted)" }}>
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  {/* Weight stepper */}
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      onClick={() => onSetChange(exerciseIndex, setIndex, "weightKg", Math.round((set.weightKg - 2.5) * 100) / 100)}
+                      className="h-9 w-9 rounded-lg flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                      style={{ background: "var(--muted)" }}>
+                      <Minus className="h-3 w-3" />
+                    </button>
+                    <span className="w-10 text-center font-black text-sm tabular-nums">{set.weightKg}</span>
+                    <button
+                      onClick={() => onSetChange(exerciseIndex, setIndex, "weightKg", Math.round((set.weightKg + 2.5) * 100) / 100)}
+                      className="h-9 w-9 rounded-lg flex items-center justify-center touch-manipulation active:scale-90 transition-transform"
+                      style={{ background: "var(--muted)" }}>
+                      <Plus className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => onRemoveSet(exerciseIndex, setIndex)}
+                    className="h-8 w-8 flex items-center justify-center rounded-lg touch-manipulation"
+                    style={{ color: "var(--destructive)" }}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* PR / 1RM / plates row */}
+                {(newPR || current1RM > 0 || plateResult) && (
+                  <div className="flex items-center gap-2 px-2 pt-1 pb-0.5 flex-wrap">
+                    {newPR && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                        style={{ background: "oklch(0.85 0.18 85 / 20%)", color: "#facc15" }}>
+                        <Trophy className="h-2.5 w-2.5" />PR!
+                      </span>
+                    )}
+                    {current1RM > 0 && (
+                      <span className="text-[10px] font-medium" style={{ color: "var(--muted-foreground)" }}>
+                        ~{current1RM}kg 1RM
+                      </span>
+                    )}
+                    {plateResult && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 touch-manipulation" style={{ color: "var(--muted-foreground)" }}>
+                            <Dumbbell className="h-3 w-3" />
+                            <span className="text-[10px] font-medium">plates</span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-52 p-3" side="top">
+                          <p className="text-xs font-bold mb-1">Each side (20kg bar)</p>
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {plateResult.plates.map(({ weight, count }) =>
+                              Array.from({ length: count }).map((_, i) => (
+                                <span key={`${weight}-${i}`}
+                                  className="text-[10px] font-black px-2 py-0.5 rounded-full text-white"
+                                  style={{ background: PLATE_COLORS[weight] ?? "#6b7280" }}>
+                                  {weight}
+                                </span>
+                              ))
+                            )}
+                          </div>
+                          {!plateResult.achievable && (
+                            <p className="text-[10px] text-orange-400 mt-1">
+                              Closest: {plateResult.totalWeight}kg
+                            </p>
+                          )}
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          <button
+            onClick={() => onAddSet(exerciseIndex)}
+            className="w-full h-10 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-80 touch-manipulation mt-1"
+            style={{ background: "var(--muted)", color: "var(--muted-foreground)" }}>
+            <Plus className="h-4 w-4" />Add Set
+          </button>
+        </div>
+      )}
     </div>
   )
 }

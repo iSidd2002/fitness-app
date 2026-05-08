@@ -1,10 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useRef } from "react"
 import { cn } from "@/lib/utils"
 
 interface DaySchedule {
@@ -14,12 +10,7 @@ interface DaySchedule {
   exercises: {
     id: string
     exerciseId: string
-    exercise: {
-      id: string
-      name: string
-      muscleGroup: string
-      equipment: string
-    }
+    exercise: { id: string; name: string; muscleGroup: string; equipment: string }
     order: number
   }[]
 }
@@ -32,228 +23,121 @@ interface DayNavigationProps {
   className?: string
 }
 
-const daysOfWeek = [
-  { value: 0, label: "Sunday", short: "Sun" },
-  { value: 1, label: "Monday", short: "Mon" },
-  { value: 2, label: "Tuesday", short: "Tue" },
-  { value: 3, label: "Wednesday", short: "Wed" },
-  { value: 4, label: "Thursday", short: "Thu" },
-  { value: 5, label: "Friday", short: "Fri" },
-  { value: 6, label: "Saturday", short: "Sat" },
+const DAYS = [
+  { value: 0, short: "Sun" },
+  { value: 1, short: "Mon" },
+  { value: 2, short: "Tue" },
+  { value: 3, short: "Wed" },
+  { value: 4, short: "Thu" },
+  { value: 5, short: "Fri" },
+  { value: 6, short: "Sat" },
 ]
 
-export function DayNavigation({ 
-  selectedDay, 
-  onDaySelect, 
+export function DayNavigation({
+  selectedDay,
+  onDaySelect,
   weeklySchedule = [],
   loading = false,
-  className 
+  className,
 }: DayNavigationProps) {
-  const [currentWeekStart, setCurrentWeekStart] = useState(0)
   const today = new Date().getDay()
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Mobile view: show 3 days at a time
-  const visibleDays = daysOfWeek.slice(currentWeekStart, currentWeekStart + 3)
-
-  const handlePrevious = () => {
-    if (currentWeekStart > 0) {
-      setCurrentWeekStart(currentWeekStart - 1)
-    }
-  }
-
-  const handleNext = () => {
-    if (currentWeekStart < 4) {
-      setCurrentWeekStart(currentWeekStart + 1)
-    }
-  }
-
-  const getDaySchedule = (dayOfWeek: number) => {
-    return weeklySchedule.find(schedule => schedule.dayOfWeek === dayOfWeek)
-  }
-
-  const getExerciseCount = (dayOfWeek: number) => {
-    const daySchedule = getDaySchedule(dayOfWeek)
-    return daySchedule?.exercises?.length || 0
-  }
-
-  const getDayName = (dayOfWeek: number) => {
-    const daySchedule = getDaySchedule(dayOfWeek)
-    return daySchedule?.name || daysOfWeek[dayOfWeek]?.label || "Unknown"
+  const getDaySchedule = (d: number) => weeklySchedule.find(s => s.dayOfWeek === d)
+  const getExerciseCount = (d: number) => getDaySchedule(d)?.exercises?.length ?? 0
+  const getWorkoutName = (d: number) => {
+    const name = getDaySchedule(d)?.name
+    if (!name) return null
+    // Shorten common suffixes for display
+    return name.replace(" Day", "").replace(" Workout", "")
   }
 
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Desktop View - All Days */}
-      <div className="hidden md:block">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2 mb-4">
-              <Calendar className="h-5 w-5 text-blue-600" />
-              <h3 className="font-semibold text-gray-900">Weekly Schedule</h3>
-            </div>
-            <div className="grid grid-cols-7 gap-2">
-              {daysOfWeek.map((day) => {
-                const exerciseCount = getExerciseCount(day.value)
-                const dayName = getDayName(day.value)
-                const isToday = day.value === today
-                const isSelected = day.value === selectedDay
+    <div className={cn("space-y-3", className)}>
+      {/* Scrollable day strip */}
+      <div
+        ref={scrollRef}
+        className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide snap-x snap-mandatory"
+        style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+      >
+        {DAYS.map(({ value, short }) => {
+          const isToday = value === today
+          const isSelected = value === selectedDay
+          const count = getExerciseCount(value)
+          const name = getWorkoutName(value)
 
-                return (
-                  <Button
-                    key={day.value}
-                    variant={isSelected ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onDaySelect(day.value)}
-                    className={cn(
-                      "flex flex-col h-auto p-3 space-y-1",
-                      isSelected && "bg-blue-600 hover:bg-blue-700",
-                      isToday && !isSelected && "ring-2 ring-blue-300"
-                    )}
-                    disabled={loading}
-                  >
-                    <span className="text-xs font-medium">{day.short}</span>
-                    <span className="text-xs truncate max-w-full" title={dayName}>
-                      {dayName.split(' ')[0]}
-                    </span>
-                    <Badge 
-                      variant={isSelected ? "secondary" : "outline"} 
-                      className={cn(
-                        "text-xs px-1 py-0",
-                        isSelected && "bg-blue-100 text-blue-800"
-                      )}
-                    >
-                      {exerciseCount}
-                    </Badge>
-                  </Button>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+          return (
+            <button
+              key={value}
+              onClick={() => !loading && onDaySelect(value)}
+              disabled={loading}
+              className={cn(
+                "snap-center flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-2xl transition-all duration-200 touch-manipulation min-w-[72px]",
+                isSelected
+                  ? "text-white shadow-lg scale-105"
+                  : "hover:scale-102",
+              )}
+              style={
+                isSelected
+                  ? { background: "var(--primary)", boxShadow: "0 4px 20px oklch(0.62 0.19 244 / 40%)" }
+                  : isToday
+                  ? { background: "oklch(0.62 0.19 244 / 12%)", border: "1.5px solid oklch(0.62 0.19 244 / 40%)" }
+                  : { background: "var(--card)", border: "1px solid var(--border)" }
+              }
+            >
+              <span
+                className="text-[11px] font-semibold uppercase tracking-wider"
+                style={{ color: isSelected ? "rgba(255,255,255,0.75)" : "var(--muted-foreground)" }}
+              >
+                {isToday && !isSelected ? "TODAY" : short}
+              </span>
+              <span
+                className="text-lg font-bold leading-none"
+                style={{ color: isSelected ? "#fff" : "var(--foreground)" }}
+              >
+                {value}
+              </span>
+              {name ? (
+                <span
+                  className="text-[10px] font-medium truncate max-w-[64px] text-center leading-tight"
+                  style={{ color: isSelected ? "rgba(255,255,255,0.8)" : "var(--muted-foreground)" }}
+                >
+                  {name}
+                </span>
+              ) : (
+                <span className="text-[10px]" style={{ color: isSelected ? "rgba(255,255,255,0.5)" : "var(--muted-foreground)" }}>
+                  Rest
+                </span>
+              )}
+              {count > 0 && (
+                <span
+                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={
+                    isSelected
+                      ? { background: "rgba(255,255,255,0.2)", color: "#fff" }
+                      : { background: "var(--primary)", color: "#fff" }
+                  }
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Mobile View - 3 Days with Navigation */}
-      <div className="md:hidden">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-gray-900">Schedule</h3>
-              </div>
-              <div className="flex items-center space-x-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handlePrevious}
-                  disabled={currentWeekStart === 0 || loading}
-                  className="p-1"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleNext}
-                  disabled={currentWeekStart >= 4 || loading}
-                  className="p-1"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-2">
-              {visibleDays.map((day) => {
-                const exerciseCount = getExerciseCount(day.value)
-                const dayName = getDayName(day.value)
-                const isToday = day.value === today
-                const isSelected = day.value === selectedDay
-
-                return (
-                  <Button
-                    key={day.value}
-                    variant={isSelected ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => onDaySelect(day.value)}
-                    className={cn(
-                      "flex flex-col h-auto p-3 space-y-1",
-                      isSelected && "bg-blue-600 hover:bg-blue-700",
-                      isToday && !isSelected && "ring-2 ring-blue-300"
-                    )}
-                    disabled={loading}
-                  >
-                    <span className="text-xs font-medium">{day.short}</span>
-                    <span className="text-xs truncate max-w-full" title={dayName}>
-                      {dayName.split(' ')[0]}
-                    </span>
-                    <Badge 
-                      variant={isSelected ? "secondary" : "outline"} 
-                      className={cn(
-                        "text-xs px-1 py-0",
-                        isSelected && "bg-blue-100 text-blue-800"
-                      )}
-                    >
-                      {exerciseCount}
-                    </Badge>
-                  </Button>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Navigation */}
-      <div className="flex justify-center space-x-2">
-        {selectedDay !== today && (
-          <Button
-            variant="outline"
-            size="sm"
+      {/* Today chip — only shown when not on today */}
+      {selectedDay !== today && (
+        <div className="flex justify-center">
+          <button
             onClick={() => onDaySelect(today)}
-            className="text-xs"
+            className="text-xs font-medium px-3 py-1 rounded-full transition-colors touch-manipulation"
+            style={{ background: "var(--muted)", color: "var(--primary)" }}
           >
-            Back to Today
-          </Button>
-        )}
-
-        {selectedDay !== (today + 1) % 7 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDaySelect((today + 1) % 7)}
-            className="text-xs"
-          >
-            Tomorrow
-          </Button>
-        )}
-
-        {selectedDay !== (today - 1 + 7) % 7 && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onDaySelect((today - 1 + 7) % 7)}
-            className="text-xs"
-          >
-            Yesterday
-          </Button>
-        )}
-      </div>
-
-      {/* Current Day Info */}
-      <div className="text-center">
-        <p className="text-sm text-gray-600">
-          {selectedDay === today ? (
-            <span className="text-blue-600 font-medium">Today&apos;s Workout</span>
-          ) : (
-            <span>
-              {daysOfWeek[selectedDay]?.label} Workout
-              {selectedDay === (today + 1) % 7 && " (Tomorrow)"}
-              {selectedDay === (today - 1 + 7) % 7 && " (Yesterday)"}
-            </span>
-          )}
-        </p>
-      </div>
+            ← Back to Today
+          </button>
+        </div>
+      )}
     </div>
   )
 }
