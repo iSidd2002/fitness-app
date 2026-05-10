@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Trophy, Medal, Award, TrendingUp, Users, Weight } from "lucide-react"
 import { toast } from "sonner"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface LeaderboardEntry {
   rank: number
@@ -47,7 +48,7 @@ export function ExerciseWeightLeaderboard() {
   const fetchTopExercises = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/leaderboard/exercise-weights')
+      const response = await apiFetch('/api/leaderboard/exercise-weights')
       if (!response.ok) throw new Error('Failed to fetch top exercises')
       
       const data = await response.json()
@@ -63,7 +64,7 @@ export function ExerciseWeightLeaderboard() {
   const fetchExerciseLeaderboard = async (exerciseName: string) => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/leaderboard/exercise-weights?exercise=${encodeURIComponent(exerciseName)}`)
+      const response = await apiFetch(`/api/leaderboard/exercise-weights?exercise=${encodeURIComponent(exerciseName)}`)
       if (!response.ok) throw new Error('Failed to fetch leaderboard')
       
       const data = await response.json()

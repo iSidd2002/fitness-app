@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AddCustomExerciseDialog } from "@/components/add-custom-exercise-dialog"
 import { ExerciseReplacementDialog } from "@/components/exercise-replacement-dialog"
 import { useAuthGuard } from "@/components/auth-guard"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface Exercise {
   id: string
@@ -89,7 +90,7 @@ export function DailyWorkoutDashboard() {
 
   const fetchTodaysSchedule = async () => {
     try {
-      const response = await fetch(`/api/schedule/today`)
+      const response = await apiFetch(`/api/schedule/today`)
       if (response.ok) {
         const data = await response.json()
         setTodaysSchedule(data.schedule)
@@ -207,7 +208,7 @@ export function DailyWorkoutDashboard() {
         return
       }
 
-      const response = await fetch("/api/workout/save", {
+      const response = await apiFetch("/api/workout/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

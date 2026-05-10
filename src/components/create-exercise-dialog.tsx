@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { apiFetch } from "@/lib/api-fetch"
 
 const createExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),
@@ -102,7 +103,7 @@ export function CreateExerciseDialog({
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/exercises", {
+      const response = await apiFetch("/api/exercises", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

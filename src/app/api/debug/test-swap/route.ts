@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { z } from "zod"
 
@@ -7,8 +9,15 @@ const testSwapSchema = z.object({
   toDay: z.number().min(0).max(6)
 })
 
-// POST /api/debug/test-swap - Test swap logic without authentication
+// POST /api/debug/test-swap - Test swap logic (production-gated)
 export async function POST(request: NextRequest) {
+  if (process.env.NODE_ENV === "production") {
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+  }
+
   try {
     console.log("=== DEBUG TEST SWAP ===")
     

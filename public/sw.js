@@ -1,5 +1,6 @@
-const CACHE_NAME = 'incelfit-v1'
-const STATIC_ASSETS = ['/', '/dashboard', '/history', '/leaderboard']
+const CACHE_NAME = 'incelfit-v2'
+// Only cache truly static, auth-agnostic assets — NOT auth-protected pages
+const STATIC_ASSETS = ['/manifest.json']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -49,6 +50,13 @@ self.addEventListener('fetch', (event) => {
         }
         return res
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+      .catch(() => {
+        // For navigation requests don't serve a potentially stale page from cache —
+        // let middleware redirect to /login when network is restored
+        if (request.mode === 'navigate') {
+          return new Response('', { status: 503, statusText: 'Offline' })
+        }
+        return caches.match(request)
+      })
   )
 })

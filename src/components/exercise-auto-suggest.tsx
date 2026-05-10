@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface Exercise {
   id: string
@@ -82,7 +83,7 @@ export function ExerciseAutoSuggest({
         setError(null)
 
         try {
-          const response = await fetch(`/api/exercises/search?q=${encodeURIComponent(searchTerm)}&limit=${maxSuggestions}`)
+          const response = await apiFetch(`/api/exercises/search?q=${encodeURIComponent(searchTerm)}&limit=${maxSuggestions}`)
 
           if (!response.ok) {
             throw new Error('Failed to fetch suggestions')

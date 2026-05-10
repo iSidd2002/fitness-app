@@ -51,7 +51,8 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 30 * 24 * 60 * 60,  // 30 days
+    updateAge: 24 * 60 * 60,     // re-sign token at most once per 24h, sliding the 30-day window
   },
   pages: {
     signIn: "/login"

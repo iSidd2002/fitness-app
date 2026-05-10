@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ExerciseAutoSuggest } from "@/components/exercise-auto-suggest"
 import { AuthGuard } from "@/components/auth-guard"
+import { apiFetch } from "@/lib/api-fetch"
 import { ImportExercisesDialog } from "@/components/import-exercises-dialog"
 import { AdminCreateExerciseDialog } from "@/components/admin-create-exercise-dialog"
 import { AdminEditExerciseDialog } from "@/components/admin-edit-exercise-dialog"
@@ -96,8 +97,8 @@ function AdminSchedulePageContent() {
   const fetchData = async () => {
     try {
       const [scheduleRes, exercisesRes] = await Promise.all([
-        fetch("/api/admin/schedule"),
-        fetch("/api/exercises/global")
+        apiFetch("/api/admin/schedule"),
+        apiFetch("/api/exercises/global")
       ])
 
       if (scheduleRes.ok) {
@@ -134,7 +135,7 @@ function AdminSchedulePageContent() {
 
     setSaving(true)
     try {
-      const response = await fetch("/api/admin/schedule", {
+      const response = await apiFetch("/api/admin/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -178,7 +179,7 @@ function AdminSchedulePageContent() {
 
     setSaving(true)
     try {
-      const response = await fetch("/api/admin/schedule", {
+      const response = await apiFetch("/api/admin/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,7 +213,7 @@ function AdminSchedulePageContent() {
 
     setSaving(true)
     try {
-      const response = await fetch(`/api/admin/schedule/${scheduleExerciseId}`, {
+      const response = await apiFetch(`/api/admin/schedule/${scheduleExerciseId}`, {
         method: "DELETE"
       })
 
@@ -245,7 +246,7 @@ function AdminSchedulePageContent() {
   const handleInitializeSchedule = async () => {
     setInitializing(true)
     try {
-      const response = await fetch("/api/admin/schedule/initialize", {
+      const response = await apiFetch("/api/admin/schedule/initialize", {
         method: "POST",
         headers: { "Content-Type": "application/json" }
       })
@@ -286,7 +287,7 @@ function AdminSchedulePageContent() {
 
     // Update backend
     try {
-      await fetch("/api/admin/schedule/reorder", {
+      await apiFetch("/api/admin/schedule/reorder", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -310,7 +311,7 @@ function AdminSchedulePageContent() {
 
     setDayTypeLoading(true)
     try {
-      const response = await fetch("/api/admin/schedule/update-day-type", {
+      const response = await apiFetch("/api/admin/schedule/update-day-type", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

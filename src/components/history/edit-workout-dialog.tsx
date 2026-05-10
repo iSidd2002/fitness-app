@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Edit3, Trash2, Save, X, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface ExerciseSet {
   id: string
@@ -68,7 +69,7 @@ export function EditWorkoutDialog({ workout, onWorkoutUpdated, children }: EditW
     try {
       setLoading(true)
       
-      const response = await fetch('/api/workout/history/edit', {
+      const response = await apiFetch('/api/workout/history/edit', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,7 +100,7 @@ export function EditWorkoutDialog({ workout, onWorkoutUpdated, children }: EditW
     try {
       setLoading(true)
       
-      const response = await fetch('/api/workout/history/edit', {
+      const response = await apiFetch('/api/workout/history/edit', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +129,7 @@ export function EditWorkoutDialog({ workout, onWorkoutUpdated, children }: EditW
     try {
       setLoading(true)
       
-      const response = await fetch('/api/workout/history/edit', {
+      const response = await apiFetch('/api/workout/history/edit', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CreateExerciseDialog } from "@/components/create-exercise-dialog"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface Exercise {
   id: string
@@ -54,7 +55,7 @@ export function WorkoutDashboard() {
 
   const fetchExercises = async () => {
     try {
-      const response = await fetch("/api/exercises")
+      const response = await apiFetch("/api/exercises")
       if (!response.ok) throw new Error("Failed to fetch exercises")
       
       const data = await response.json()

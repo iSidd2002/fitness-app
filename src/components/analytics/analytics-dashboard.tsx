@@ -14,6 +14,7 @@ import { FrequencyTrendsChart } from "./frequency-trends-chart"
 import { PersonalRecordsChart } from "./personal-records-chart"
 import { subDays, format } from "date-fns"
 import { DateRange } from "react-day-picker"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface AnalyticsData {
   weightProgress: { [exerciseName: string]: Array<{ date: string; weight: number; exerciseId: string }> }
@@ -65,7 +66,7 @@ export function AnalyticsDashboard({ className }: AnalyticsDashboardProps) {
         }
       }
 
-      const response = await fetch(`/api/analytics?${params.toString()}`)
+      const response = await apiFetch(`/api/analytics?${params.toString()}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch analytics')

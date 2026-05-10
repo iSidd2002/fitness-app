@@ -17,6 +17,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ExerciseAutoSuggest } from "@/components/exercise-auto-suggest"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface Exercise {
   id: string
@@ -52,7 +53,7 @@ export function ExerciseReplacementDialog({
   const fetchExercises = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/exercises")
+      const response = await apiFetch("/api/exercises")
       if (response.ok) {
         const data = await response.json()
         const exercises = data.exercises.filter((ex: Exercise) => ex.id !== originalExercise.id)

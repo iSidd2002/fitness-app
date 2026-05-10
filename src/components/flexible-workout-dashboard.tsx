@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { AddCustomExerciseDialog } from "@/components/add-custom-exercise-dialog"
+import { apiFetch } from "@/lib/api-fetch"
 import { ExerciseReplacementDialog } from "@/components/exercise-replacement-dialog"
 import { DayNavigation } from "@/components/day-navigation"
 import { DaySwapConfirmationDialog } from "@/components/day-swap-confirmation-dialog"
@@ -128,14 +129,14 @@ export function FlexibleWorkoutDashboard() {
 
   const fetchPersonalRecords = async () => {
     try {
-      const res = await fetch("/api/analytics")
+      const res = await apiFetch("/api/analytics")
       if (res.ok) setPersonalRecords((await res.json()).personalRecords ?? [])
     } catch { /* non-critical */ }
   }
 
   const fetchWeeklySchedule = async () => {
     try {
-      const res = await fetch("/api/schedule/weekly")
+      const res = await apiFetch("/api/schedule/weekly")
       if (res.ok) setWeeklySchedule((await res.json()).schedule ?? [])
     } catch { toast.error("Failed to load schedule") }
     finally { setLoading(false) }
@@ -144,7 +145,7 @@ export function FlexibleWorkoutDashboard() {
   const fetchDaySchedule = async (day: number) => {
     setDayLoading(true)
     try {
-      const res = await fetch(`/api/schedule/day/${day}`)
+      const res = await apiFetch(`/api/schedule/day/${day}`)
       if (res.ok) {
         const data = await res.json()
         setCurrentDaySchedule(data.schedule)
@@ -217,7 +218,7 @@ export function FlexibleWorkoutDashboard() {
 
   const handleCopyLastSession = async (exerciseId: string, exerciseName: string, idx: number) => {
     try {
-      const res = await fetch("/api/workout/history")
+      const res = await apiFetch("/api/workout/history")
       if (!res.ok) throw new Error()
       const { workoutLogs } = await res.json()
       for (const log of workoutLogs) {
@@ -251,7 +252,7 @@ export function FlexibleWorkoutDashboard() {
   const handleConfirmDaySwap = async () => {
     setSwapLoading(true)
     try {
-      const res = await fetch("/api/schedule/swap-days", {
+      const res = await apiFetch("/api/schedule/swap-days", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fromDay: selectedDay, toDay: today, userId: session?.user?.id }),
@@ -272,7 +273,7 @@ export function FlexibleWorkoutDashboard() {
     try {
       const completed = workoutExercises.filter(ex => ex.sets.some(s => s.reps > 0 && s.weightKg > 0))
       if (!completed.length) { toast.error("Complete at least one set first"); setSaving(false); return }
-      const res = await fetch("/api/workout/save", {
+      const res = await apiFetch("/api/workout/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dayOfWeek: selectedDay, exercises: completed }),

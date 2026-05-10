@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { Loader2, AlertCircle, Shield } from "lucide-react"
 import { toast } from "sonner"
 
@@ -15,7 +15,25 @@ interface AuthGuardProps {
   fallback?: React.ReactNode
 }
 
-export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuardProps) {
+function LoadingCard({ fallback }: { fallback?: React.ReactNode }) {
+  return (
+    fallback || (
+      <div className="min-h-screen flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin mb-4" style={{ color: "var(--primary)" }} />
+            <h2 className="text-lg font-semibold mb-2">Checking Authentication</h2>
+            <p className="text-sm text-center" style={{ color: "var(--muted-foreground)" }}>
+              Please wait while we verify your session...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  )
+}
+
+function AuthGuardInner({ children, requireAdmin = false, fallback }: AuthGuardProps) {
   const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -28,24 +46,20 @@ export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuar
   useEffect(() => {
     if (!mounted || status === "loading") return
 
-    // Check for error messages from middleware redirects
     const error = searchParams.get("error")
     if (error === "admin_required") {
       toast.error("Admin access required for this page")
-      // Clear the error from URL
       const newUrl = new URL(window.location.href)
       newUrl.searchParams.delete("error")
       window.history.replaceState({}, "", newUrl.toString())
     }
 
-    // Redirect to login if not authenticated
     if (!session) {
       const callbackUrl = encodeURIComponent(window.location.href)
       router.push(`/login?callbackUrl=${callbackUrl}`)
       return
     }
 
-    // Check admin requirement
     if (requireAdmin && session.user?.role !== "ADMIN") {
       toast.error("Admin privileges required to access this page")
       router.push("/")
@@ -53,26 +67,10 @@ export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuar
     }
   }, [session, status, router, mounted, searchParams, requireAdmin])
 
-  // Show loading state while checking authentication
   if (!mounted || status === "loading") {
-    return (
-      fallback || (
-        <div className="min-h-screen flex items-center justify-center">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin mb-4" style={{ color: "var(--primary)" }} />
-              <h2 className="text-lg font-semibold mb-2">Checking Authentication</h2>
-              <p className="text-sm text-center" style={{ color: "var(--muted-foreground)" }}>
-                Please wait while we verify your session...
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )
-    )
+    return <LoadingCard fallback={fallback} />
   }
 
-  // Show error state if not authenticated
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -112,8 +110,17 @@ export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuar
     )
   }
 
-  // Render children if all checks pass
   return <>{children}</>
+}
+
+export function AuthGuard({ children, requireAdmin = false, fallback }: AuthGuardProps) {
+  return (
+    <Suspense fallback={<LoadingCard fallback={fallback} />}>
+      <AuthGuardInner requireAdmin={requireAdmin} fallback={fallback}>
+        {children}
+      </AuthGuardInner>
+    </Suspense>
+  )
 }
 
 // Higher-order component for page-level protection

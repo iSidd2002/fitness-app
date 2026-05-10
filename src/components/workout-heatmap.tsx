@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Calendar, Flame } from "lucide-react"
 import { format } from "date-fns"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface HeatmapData {
   date: string
@@ -50,7 +51,7 @@ export function WorkoutHeatmap({ className }: WorkoutHeatmapProps) {
   const fetchStreakData = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/workout/streak')
+      const response = await apiFetch('/api/workout/streak')
       if (!response.ok) {
         throw new Error('Failed to fetch streak data')
       }

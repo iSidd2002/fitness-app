@@ -8,7 +8,11 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <SessionProvider refetchInterval={0} refetchOnWindowFocus={false}>
+    <SessionProvider
+      refetchInterval={5 * 60}
+      refetchOnWindowFocus={true}
+      refetchWhenOffline={false}
+    >
       {children}
     </SessionProvider>
   )

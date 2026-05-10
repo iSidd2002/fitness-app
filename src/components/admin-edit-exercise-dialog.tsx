@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface Exercise {
   id: string
@@ -161,7 +162,7 @@ export function AdminEditExerciseDialog({
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/exercises/${scheduleExercise.exercise.id}`, {
+      const response = await apiFetch(`/api/admin/exercises/${scheduleExercise.exercise.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

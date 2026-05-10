@@ -34,6 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Card, CardContent } from "@/components/ui/card"
+import { apiFetch } from "@/lib/api-fetch"
 
 const createGlobalExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),
@@ -120,7 +121,7 @@ export function AdminCreateExerciseDialog({
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/admin/exercises/create", {
+      const response = await apiFetch("/api/admin/exercises/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

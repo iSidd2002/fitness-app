@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface ImportResult {
   imported: number
@@ -104,7 +105,7 @@ export function ImportExercisesDialog({ onImportComplete }: ImportExercisesDialo
 
   const checkApiStatus = async () => {
     try {
-      const response = await fetch("/api/admin/exercises/import")
+      const response = await apiFetch("/api/admin/exercises/import")
       if (response.ok) {
         const data = await response.json()
         setApiConfigured(data.apiConfigured)

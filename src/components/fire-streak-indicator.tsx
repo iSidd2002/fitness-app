@@ -5,6 +5,7 @@ import { Flame, TrendingUp, Target, Calendar } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface StreakData {
   currentStreak: number
@@ -57,7 +58,7 @@ export function FireStreakIndicator({ className }: FireStreakIndicatorProps) {
   const fetchStreak = async () => {
     try {
       setLoading(true)
-      const res = await fetch("/api/workout/streak")
+      const res = await apiFetch("/api/workout/streak")
       if (res.ok) setData(await res.json())
     } catch {
       // silent

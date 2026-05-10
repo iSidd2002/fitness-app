@@ -2,11 +2,15 @@ import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
-// GET /api/debug/session - Debug session information
+// GET /api/debug/session - Debug session information (production-gated)
 export async function GET() {
   try {
     const session = await getServerSession(authOptions)
-    
+
+    if (process.env.NODE_ENV === "production" && !session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     return NextResponse.json({
       hasSession: !!session,
       userId: session?.user?.id || null,

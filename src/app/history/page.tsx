@@ -13,6 +13,7 @@ import Link from "next/link"
 
 import { EditWorkoutDialog } from "@/components/history/edit-workout-dialog"
 import { AuthGuard } from "@/components/auth-guard"
+import { apiFetch } from "@/lib/api-fetch"
 
 interface ExerciseSet {
   id: string
@@ -59,7 +60,7 @@ function HistoryPageContent() {
 
   const fetchWorkoutHistory = async () => {
     try {
-      const response = await fetch("/api/workout/history")
+      const response = await apiFetch("/api/workout/history")
       if (response.ok) {
         const data = await response.json()
         setWorkoutLogs(data.workoutLogs)

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { ExerciseAutoSuggest } from "@/components/exercise-auto-suggest"
+import { apiFetch } from "@/lib/api-fetch"
 
 const createExerciseSchema = z.object({
   name: z.string().min(1, "Exercise name is required"),
@@ -109,7 +110,7 @@ export function AddCustomExerciseDialog({
   const fetchMyExercises = async () => {
     setLoading(true)
     try {
-      const response = await fetch("/api/exercises/my")
+      const response = await apiFetch("/api/exercises/my")
       if (response.ok) {
         const data = await response.json()
         setMyExercises(data.exercises)
@@ -146,7 +147,7 @@ export function AddCustomExerciseDialog({
     setCreating(true)
 
     try {
-      const response = await fetch("/api/exercises", {
+      const response = await apiFetch("/api/exercises", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
